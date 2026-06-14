@@ -56,8 +56,6 @@ const DOM = {
   btnLogout: document.getElementById("btn-logout"),
   navUserName: document.getElementById("nav-user-name"),
   currentPageTitle: document.getElementById("current-page-title"),
-  sidebarToggle: document.getElementById("sidebar-toggle"),
-  sidebar: document.getElementById("sidebar"),
   loadingSpinner: document.getElementById("loading-spinner"),
   
   // Dashboard Metrics UI Selectors
@@ -186,11 +184,6 @@ DOM.btnLogout.addEventListener("click", () => {
     .catch(() => toggleLoader(false));
 });
 
-// Sidebar Toggle controls for responsive devices
-DOM.sidebarToggle.addEventListener("click", () => {
-  DOM.sidebar.classList.toggle("active");
-});
-
 // SPA View switching Router
 function switchView(targetView) {
   state.activeView = targetView;
@@ -199,9 +192,12 @@ function switchView(targetView) {
   document.querySelectorAll(".view-panel").forEach(panel => {
     panel.classList.add("d-none");
   });
-  document.getElementById(`view-view-${targetView}` ? `view-${targetView}` : "view-dashboard").classList.remove("d-none");
+  const viewElement = document.getElementById(`view-${targetView}`);
+  if (viewElement) {
+    viewElement.classList.remove("d-none");
+  }
   
-  // Manage CSS styles on menu elements
+  // Manage CSS styles on desktop sidebar elements
   document.querySelectorAll(".sidebar-item").forEach(item => {
     item.classList.remove("active");
     if (item.getAttribute("data-view") === targetView) {
@@ -209,24 +205,30 @@ function switchView(targetView) {
     }
   });
 
-  // Dynamic naming configurations
+  // Manage CSS styles on mobile floating navigation bar
+  document.querySelectorAll(".mobile-nav-item").forEach(item => {
+    item.classList.remove("active");
+    if (item.getAttribute("data-view") === targetView) {
+      item.classList.add("active");
+    }
+  });
+
+  // Dynamic page title mapping adjustments
   const textMappings = {
-    dashboard: "Enterprise Dashboard Dashboard",
-    parties: "Vendor Party Profiles",
-    bills: "Billed Statements (Invoices)",
-    payments: "Disbursed Party Cashflow",
-    ledger: "Corporate Ledger Auditor Statement",
-    activity: "Operational History Logs"
+    dashboard: "Dashboard",
+    parties: "Parties",
+    bills: "Bills",
+    payments: "Payments",
+    ledger: "Ledger",
+    activity: "Activity History"
   };
-  DOM.currentPageTitle.innerText = textMappings[targetView] || "Dashboard";
+  DOM.currentPageTitle.innerText = textMappings[targetView] || "Freskey";
   
-  // Close responsive side navigation if currently open
-  DOM.sidebar.classList.remove("active");
-  
-  // Refers UI structures layout
+  // Refresh layout components
   renderState(targetView);
 }
 
+// Attach Event Listeners to Desktop Sidebar Options
 document.querySelectorAll(".sidebar-item").forEach(item => {
   item.addEventListener("click", (e) => {
     e.preventDefault();
@@ -235,8 +237,17 @@ document.querySelectorAll(".sidebar-item").forEach(item => {
   });
 });
 
+// Attach Event Listeners to Mobile Floating Navigation Tabs
+document.querySelectorAll(".mobile-nav-item").forEach(item => {
+  item.addEventListener("click", (e) => {
+    e.preventDefault();
+    const view = item.getAttribute("data-view");
+    switchView(view);
+  });
+});
+
 // ==========================================
-// SYSTEM LOG ENGINE (READ-ONLY ACTIVITY TIMELINE)
+// SYSTEM LOG ENGINE (READ-ONLY ACTIVITY HISTORY)
 // ==========================================
 function recordActivity(action, description) {
   const timestamp = firebase.firestore.FieldValue.serverTimestamp();
@@ -715,7 +726,7 @@ function attachRowListeners() {
     const rateInput = row.querySelector(".item-rate-field");
     const totalInput = row.querySelector(".item-total-field");
     
-    // Cleanup old events to prevent memory leak
+    // Cleanup old events to prevent memory leaks
     qtyInput.oninput = null;
     rateInput.oninput = null;
     
@@ -884,7 +895,7 @@ DOM.billForm.addEventListener("submit", async (e) => {
       state.bills.push(payload);
       
       recordActivity("Created Invoice Record", `Created Bill #${billNumber} for vendor "${party.name}". Total Valued: ${formatCurrency(totalAmount)}`);
-      showNotification(`Invoice #${billNumber} recorded successfully.`, "success");
+      showNotification(`Invoice #${billNumber} recorded.`, "success");
     }
     
     state.instances.billModal.hide();
@@ -925,7 +936,7 @@ function deleteBill(id) {
         
         recordActivity("Deleted Invoice Receipt", `Removed Bill #${bill.billNumber} values. Deducted ${formatCurrency(bill.totalAmount)} liability.`);
         state.bills = state.bills.filter(b => b.id !== id);
-        showNotification("Invoice deleted successfully.", "info");
+        showNotification("Invoice deleted.", "info");
         updateLocalStateAndSync();
       })
       .catch(err => {
@@ -1030,7 +1041,7 @@ function deletePayment(id) {
         
         recordActivity("Reversed Remittance Record", `Voided payment transaction of ${formatCurrency(payment.amount)} to vendor "${payment.partyName}"`);
         state.payments = state.payments.filter(p => p.id !== id);
-        showNotification("Payment entry successfully reversed.", "info");
+        showNotification("Payment entry reversed.", "info");
         updateLocalStateAndSync();
       })
       .catch(err => {
@@ -1046,7 +1057,7 @@ function deletePayment(id) {
 DOM.btnGenerateLedger.addEventListener("click", () => {
   const partyId = DOM.ledgerPartySelect.value;
   if (!partyId) {
-    showNotification("Select a party vendor to audit.", "info");
+    showNotification("Select a party vendor.", "info");
     return;
   }
   
