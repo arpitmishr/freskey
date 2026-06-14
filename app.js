@@ -50,7 +50,7 @@ const state = {
 };
 
 // ==========================================
-// DYNAMIC DOM RETRIEVER (PREVENTS INITIALIZATION NULL REFERENCE ERRORS)
+// DYNAMIC DOM RETRIEVER (RESOLVES INTERNAL innerText REFERENCE MISMATCHES) [1]
 // ==========================================
 const getDOM = () => ({
   authScreen: document.getElementById("auth-screen"),
@@ -99,6 +99,7 @@ const getDOM = () => ({
   ledgerPartySelect: document.getElementById("ledger-party-select"),
   btnGenerateLedger: document.getElementById("btn-generate-ledger"),
   btnPrintLedger: document.getElementById("btn-print-ledger"),
+  btnDownloadLedger: document.getElementById("btn-download-ledger"),
   ledgerTbody: document.getElementById("ledger-tbody"),
   ledgerGenDate: document.getElementById("ledger-generation-date"),
   ledgerCompName: document.getElementById("ledger-company-name"),
@@ -126,18 +127,35 @@ function showNotification(message, type = "info") {
   const toastText = document.getElementById("toast-text-content");
   const toastIcon = document.getElementById("toast-icon");
   
-  toastEl.className = `toast align-items-center border-0 shadow-lg text-white bg-${type === 'error' ? 'danger' : type === 'success' ? 'success' : 'primary'}`;
-  toastIcon.className = `bi ${type === 'error' ? 'bi-exclamation-triangle-fill' : type === 'success' ? 'bi-check-circle-fill' : 'bi-info-circle-fill'}`;
-  toastText.querySelector('span').innerText = message;
-  
-  const toast = new bootstrap.Toast(toastEl, { delay: 4000 });
-  toast.show();
+  if (toastEl && toastText && toastIcon) {
+    toastEl.className = `toast align-items-center border-0 shadow-lg text-white bg-${type === 'error' ? 'danger' : type === 'success' ? 'success' : 'primary'}`;
+    toastIcon.className = `bi ${type === 'error' ? 'bi-exclamation-triangle-fill' : type === 'success' ? 'bi-check-circle-fill' : 'bi-info-circle-fill'}`;
+    toastText.querySelector('span').innerText = message;
+    
+    const toast = new bootstrap.Toast(toastEl, { delay: 4000 });
+    toast.show();
+  }
 }
 
 function toggleLoader(show) {
   const DOMNode = getDOM();
-  if (show) DOMNode.loadingSpinner.classList.remove("d-none");
-  else DOMNode.loadingSpinner.classList.add("d-none");
+  if (DOMNode.loadingSpinner) {
+    if (show) DOMNode.loadingSpinner.classList.remove("d-none");
+    else DOMNode.loadingSpinner.classList.add("d-none");
+  }
+}
+
+// ==========================================
+// BOOTSTRAP MODALS LAZY GETTER (ELIMINATES BUTTON REFERENCE FAILURE) [1]
+// ==========================================
+function getModalInstance(modalId) {
+  if (!state.instances[modalId]) {
+    const el = document.getElementById(modalId);
+    if (el) {
+      state.instances[modalId] = new bootstrap.Modal(el);
+    }
+  }
+  return state.instances[modalId];
 }
 
 // ==========================================
@@ -153,6 +171,7 @@ document.addEventListener("DOMContentLoaded", () => {
   DOMNode.btnAddItemRow.addEventListener("click", () => createItemRow("", 1, 0));
   DOMNode.btnGenerateLedger.addEventListener("click", generateLedgerAudit);
   DOMNode.btnPrintLedger.addEventListener("click", () => window.print());
+  DOMNode.btnDownloadLedger.addEventListener("click", downloadLedgerCSV);
 
   // Bind dynamic real-time searches
   DOMNode.partySearch.addEventListener("input", (e) => renderPartiesUI(e.target.value.trim()));
@@ -171,7 +190,6 @@ document.addEventListener("DOMContentLoaded", () => {
         DOMNode.authScreen.classList.add("d-none");
         DOMNode.appContainer.classList.remove("d-none");
         
-        initializeBootstrapModals();
         bootstrapBackend();
       } else {
         handleSignOutCleanup();
@@ -185,21 +203,9 @@ document.addEventListener("DOMContentLoaded", () => {
     DOMNode.authScreen.classList.add("d-none");
     DOMNode.appContainer.classList.remove("d-none");
     
-    initializeBootstrapModals();
     bootstrapLocalData();
   }
 });
-
-function initializeBootstrapModals() {
-  try {
-    state.instances.partyModal = new bootstrap.Modal(document.getElementById("modal-party"));
-    state.instances.billModal = new bootstrap.Modal(document.getElementById("modal-bill"));
-    state.instances.paymentModal = new bootstrap.Modal(document.getElementById("modal-payment"));
-    state.instances.partyDetailModal = new bootstrap.Modal(document.getElementById("modal-party-details"));
-  } catch (e) {
-    console.error("Error constructing bootstrap modals: ", e);
-  }
-}
 
 function handleSignOutCleanup() {
   state.currentUser = null;
@@ -227,7 +233,6 @@ document.getElementById("login-form").addEventListener("submit", (e) => {
     DOMNode.authScreen.classList.add("d-none");
     DOMNode.appContainer.classList.remove("d-none");
     
-    initializeBootstrapModals();
     bootstrapLocalData();
     showNotification("Logged in to Local Sandbox.", "success");
     recordActivity("Logged In", "Offline session started on this browser.");
@@ -413,7 +418,6 @@ function renderState(view) {
 function renderDashboardUI() {
   const DOMNode = getDOM();
   
-  // Distribute calculations based on Party Type [1]
   let vendorsCount = 0;
   let customersCount = 0;
   
@@ -424,7 +428,6 @@ function renderDashboardUI() {
   let totalReceivedCustomers = 0; // Payments they made
 
   state.parties.forEach(p => {
-    const outstanding = Number(p.totalBills || 0) - Number(p.totalPayments || 0);
     if (p.type === 'Customer') {
       customersCount++;
       totalSales += Number(p.totalBills || 0);
@@ -436,8 +439,8 @@ function renderDashboardUI() {
     }
   });
 
-  const outstandingPayable = totalPurchases - totalPaidVendors; // Amount we owe Vendors [1]
-  const outstandingReceivable = totalSales - totalReceivedCustomers; // Amount Customers owe us [1]
+  const outstandingPayable = totalPurchases - totalPaidVendors; // Amount we owe Vendors
+  const outstandingReceivable = totalSales - totalReceivedCustomers; // Amount Customers owe us
 
   // Count pending overdue bills
   const now = new Date();
@@ -446,19 +449,19 @@ function renderDashboardUI() {
     return isOverdue;
   }).length;
 
-  // Render Vendor Panel Stats
-  DOMNode.dashTotalVendors.innerText = vendorsCount;
-  DOMNode.dashTotalPurchases.innerText = formatCurrency(totalPurchases);
-  DOMNode.dashTotalPaidVendors.innerText = formatCurrency(totalPaidVendors);
-  DOMNode.dashTotalPayable.innerText = formatCurrency(outstandingPayable);
+  // Render Vendor Panel Stats [1]
+  if (DOMNode.dashTotalVendors) DOMNode.dashTotalVendors.innerText = vendorsCount;
+  if (DOMNode.dashTotalPurchases) DOMNode.dashTotalPurchases.innerText = formatCurrency(totalPurchases);
+  if (DOMNode.dashTotalPaidVendors) DOMNode.dashTotalPaidVendors.innerText = formatCurrency(totalPaidVendors);
+  if (DOMNode.dashTotalPayable) DOMNode.dashTotalPayable.innerText = formatCurrency(outstandingPayable);
 
-  // Render Customer Panel Stats
-  DOMNode.dashTotalCustomers.innerText = customersCount;
-  DOMNode.dashTotalSales.innerText = formatCurrency(totalSales);
-  DOMNode.dashTotalReceivedCustomers.innerText = formatCurrency(totalReceivedCustomers);
-  DOMNode.dashTotalReceivable.innerText = formatCurrency(outstandingReceivable);
+  // Render Customer Panel Stats [1]
+  if (DOMNode.dashTotalCustomers) DOMNode.dashTotalCustomers.innerText = customersCount;
+  if (DOMNode.dashTotalSales) DOMNode.dashTotalSales.innerText = formatCurrency(totalSales);
+  if (DOMNode.dashTotalReceivedCustomers) DOMNode.dashTotalReceivedCustomers.innerText = formatCurrency(totalReceivedCustomers);
+  if (DOMNode.dashTotalReceivable) DOMNode.dashTotalReceivable.innerText = formatCurrency(outstandingReceivable);
 
-  DOMNode.dashPendingCount.innerText = pendingCount;
+  if (DOMNode.dashPendingCount) DOMNode.dashPendingCount.innerText = pendingCount;
   
   const timelineHTML = [];
   const recents = state.activities.slice(0, 5);
@@ -476,7 +479,7 @@ function renderDashboardUI() {
       `);
     });
   }
-  DOMNode.dashTimelineList.innerHTML = timelineHTML.join("");
+  if (DOMNode.dashTimelineList) DOMNode.dashTimelineList.innerHTML = timelineHTML.join("");
 }
 
 function renderPartiesUI(filterText = "") {
@@ -497,7 +500,6 @@ function renderPartiesUI(filterText = "") {
       const outstandingVal = (p.totalBills || 0) - (p.totalPayments || 0);
       const isCustomer = p.type === 'Customer';
       
-      // Select badge colors based on Vendor vs Customer profiles
       const typeBadge = isCustomer 
         ? `<span class="badge text-dark" style="background-color: var(--freskey-color-3);">Customer</span>`
         : `<span class="badge text-white" style="background-color: var(--freskey-color-5);">Vendor</span>`;
@@ -530,7 +532,7 @@ function renderPartiesUI(filterText = "") {
     });
   }
   const DOMNode = getDOM();
-  DOMNode.partiesTbody.innerHTML = html.join("");
+  if (DOMNode.partiesTbody) DOMNode.partiesTbody.innerHTML = html.join("");
 }
 
 function renderBillsUI(filterText = "") {
@@ -571,7 +573,7 @@ function renderBillsUI(filterText = "") {
     });
   }
   const DOMNode = getDOM();
-  DOMNode.billsTbody.innerHTML = html.join("");
+  if (DOMNode.billsTbody) DOMNode.billsTbody.innerHTML = html.join("");
 }
 
 function renderPaymentsUI(filterText = "") {
@@ -608,7 +610,7 @@ function renderPaymentsUI(filterText = "") {
     });
   }
   const DOMNode = getDOM();
-  DOMNode.paymentsTbody.innerHTML = html.join("");
+  if (DOMNode.paymentsTbody) DOMNode.paymentsTbody.innerHTML = html.join("");
 }
 
 function renderActivitiesUI() {
@@ -629,20 +631,25 @@ function renderActivitiesUI() {
     });
   }
   const DOMNode = getDOM();
-  DOMNode.activitiesTbody.innerHTML = html.join("");
+  if (DOMNode.activitiesTbody) DOMNode.activitiesTbody.innerHTML = html.join("");
 }
 
 // ==========================================
 // CRUD OPERATIONS: VENDOR/CUSTOMER PROFILE SUBMISSIONS
 // ==========================================
 function openPartyModal() {
-  document.getElementById("party-form-id").value = "";
+  const elId = "party-form-id";
+  const el = document.getElementById(elId);
+  if (el) el.value = "";
+  
   const DOMNode = getDOM();
-  DOMNode.partyForm.reset();
-  document.getElementById("modal-party-title").innerText = "Create Vendor / Customer Profile";
-  if (state.instances.partyModal) {
-    state.instances.partyModal.show();
-  }
+  if (DOMNode.partyForm) DOMNode.partyForm.reset();
+  
+  const titleEl = document.getElementById("modal-party-title");
+  if (titleEl) titleEl.innerText = "Create Vendor / Customer Profile";
+  
+  const modal = getModalInstance("modal-party");
+  if (modal) modal.show();
 }
 
 function editParty(id) {
@@ -650,7 +657,7 @@ function editParty(id) {
   if (!party) return;
   
   document.getElementById("party-form-id").value = party.id;
-  document.getElementById("party-form-type").value = party.type || "Vendor";
+  document.getElementById("party-form-type").value = party.type || "Customer";
   document.getElementById("party-form-name").value = party.name;
   document.getElementById("party-form-mobile").value = party.mobile;
   document.getElementById("party-form-gst").value = party.gst || "";
@@ -658,9 +665,8 @@ function editParty(id) {
   document.getElementById("party-form-notes").value = party.notes || "";
   
   document.getElementById("modal-party-title").innerText = "Edit Profile: " + party.name;
-  if (state.instances.partyModal) {
-    state.instances.partyModal.show();
-  }
+  const modal = getModalInstance("modal-party");
+  if (modal) modal.show();
 }
 
 function handlePartySubmit(e) {
@@ -705,12 +711,10 @@ function handlePartySubmit(e) {
     
     LocalStorageEngine.save("parties", list);
     toggleLoader(false);
-    if (state.instances.partyModal) {
-      state.instances.partyModal.hide();
-    }
+    const modal = getModalInstance("modal-party");
+    if (modal) modal.hide();
     syncGlobalState();
   } else {
-    // Cloud Firestore Operations
     const dbRef = db.collection("parties");
     if (id) {
       dbRef.doc(id).update({
@@ -721,9 +725,8 @@ function handlePartySubmit(e) {
         if (idx !== -1) state.parties[idx] = { ...state.parties[idx], ...payload };
         recordActivity("Updated Profile", `Modified properties of ${type}: "${name}"`);
         showNotification(`Profile updated: ${name}`, "success");
-        if (state.instances.partyModal) {
-          state.instances.partyModal.hide();
-        }
+        const modal = getModalInstance("modal-party");
+        if (modal) modal.hide();
         syncGlobalState();
       }).catch(err => showNotification(err.message, "error"))
         .finally(() => toggleLoader(false));
@@ -741,9 +744,8 @@ function handlePartySubmit(e) {
         state.parties.push(completePayload);
         recordActivity("Created Profile", `Registered new ${type}: "${name}"`);
         showNotification(`Profile registered: ${name}`, "success");
-        if (state.instances.partyModal) {
-          state.instances.partyModal.hide();
-        }
+        const modal = getModalInstance("modal-party");
+        if (modal) modal.hide();
         syncGlobalState();
       }).catch(err => showNotification(err.message, "error"))
         .finally(() => toggleLoader(false));
@@ -788,18 +790,18 @@ function viewPartyDetails(partyId) {
   
   const isCustomer = party.type === 'Customer';
   
-  // Custom Dynamic Terminology mappings
   document.getElementById("party-detail-title").innerText = `${isCustomer ? 'Customer' : 'Vendor'} Details: ${party.name}`;
   document.getElementById("party-detail-mobile").innerText = party.mobile || "--";
   document.getElementById("party-detail-gst").innerText = party.gst || "--";
   document.getElementById("party-detail-address").innerText = party.address || "--";
   
   const typeBadgeNode = document.getElementById("party-detail-type-badge");
-  typeBadgeNode.innerText = isCustomer ? 'Customer' : 'Vendor';
-  typeBadgeNode.className = `badge mb-3 fs-6 ${isCustomer ? 'text-dark' : 'text-white'}`;
-  typeBadgeNode.style.backgroundColor = isCustomer ? 'var(--freskey-color-3)' : 'var(--freskey-color-5)';
+  if (typeBadgeNode) {
+    typeBadgeNode.innerText = isCustomer ? 'Customer' : 'Vendor';
+    typeBadgeNode.className = `badge mb-3 fs-6 ${isCustomer ? 'text-dark' : 'text-white'}`;
+    typeBadgeNode.style.backgroundColor = isCustomer ? 'var(--freskey-color-3)' : 'var(--freskey-color-5)';
+  }
   
-  // Dynamically swap panel labels [1]
   document.getElementById("party-detail-total-billed-label").innerText = isCustomer ? "TOTAL SALES (INVOICES)" : "TOTAL PURCHASES (BILLS)";
   document.getElementById("party-detail-total-payments-label").innerText = isCustomer ? "TOTAL RECEIVED" : "TOTAL PAID";
   document.getElementById("party-detail-outstanding-label").innerText = isCustomer ? "DUES LEFT (THEY OWE)" : "OUTSTANDING (WE OWE)";
@@ -809,7 +811,6 @@ function viewPartyDetails(partyId) {
   document.getElementById("party-detail-total-payments").innerText = formatCurrency(party.totalPayments || 0);
   document.getElementById("party-detail-outstanding").innerText = formatCurrency(oVal);
   
-  // Custom transaction table list
   const activeBills = state.bills.filter(b => b.partyId === partyId);
   const activePayments = state.payments.filter(p => p.partyId === partyId);
   
@@ -842,9 +843,8 @@ function viewPartyDetails(partyId) {
   }
   
   document.getElementById("party-detail-transactions-tbody").innerHTML = tbodyHTML.join("");
-  if (state.instances.partyDetailModal) {
-    state.instances.partyDetailModal.show();
-  }
+  const modal = getModalInstance("modal-party-details");
+  if (modal) modal.show();
 }
 
 // ==========================================
@@ -865,8 +865,10 @@ function createItemRow(name = "", qty = 1, rate = 0) {
   const dNode = document.createElement("tbody");
   dNode.innerHTML = rowHTML;
   const DOMNode = getDOM();
-  DOMNode.billItemsTbody.appendChild(dNode.firstElementChild);
-  attachRowListeners();
+  if (DOMNode.billItemsTbody) {
+    DOMNode.billItemsTbody.appendChild(dNode.firstElementChild);
+    attachRowListeners();
+  }
 }
 
 function removeItemRow(id) {
@@ -905,23 +907,28 @@ function recomputeGrandTotals() {
     subtotal += parseFloat(input.value) || 0;
   });
   const DOMNode = getDOM();
-  DOMNode.billItemsGrandTotal.innerText = formatCurrency(subtotal);
+  if (DOMNode.billItemsGrandTotal) {
+    DOMNode.billItemsGrandTotal.innerText = formatCurrency(subtotal);
+  }
 }
 
 function openBillModal() {
   document.getElementById("bill-form-id").value = "";
   const DOMNode = getDOM();
-  DOMNode.billForm.reset();
-  DOMNode.billItemsTbody.innerHTML = "";
+  if (DOMNode.billForm) DOMNode.billForm.reset();
+  if (DOMNode.billItemsTbody) DOMNode.billItemsTbody.innerHTML = "";
   
-  document.getElementById("bill-form-date").value = new Date().toISOString().substring(0, 10);
-  document.getElementById("bill-form-due-date").value = new Date(Date.now() + 15 * 86400000).toISOString().substring(0, 10);
+  const billFormDate = document.getElementById("bill-form-date");
+  const billFormDueDate = document.getElementById("bill-form-due-date");
+  if (billFormDate) billFormDate.value = new Date().toISOString().substring(0, 10);
+  if (billFormDueDate) billFormDueDate.value = new Date(Date.now() + 15 * 86400000).toISOString().substring(0, 10);
   
   createItemRow("", 1, 0);
-  document.getElementById("modal-bill-title").innerText = "Add Bill / Invoice Document";
-  if (state.instances.billModal) {
-    state.instances.billModal.show();
-  }
+  const titleEl = document.getElementById("modal-bill-title");
+  if (titleEl) titleEl.innerText = "Add Bill / Invoice Document";
+  
+  const modal = getModalInstance("modal-bill");
+  if (modal) modal.show();
 }
 
 function editBill(id) {
@@ -935,7 +942,7 @@ function editBill(id) {
   document.getElementById("bill-form-due-date").value = bill.dueDate;
   
   const DOMNode = getDOM();
-  DOMNode.billItemsTbody.innerHTML = "";
+  if (DOMNode.billItemsTbody) DOMNode.billItemsTbody.innerHTML = "";
   if (bill.items && bill.items.length > 0) {
     bill.items.forEach(it => {
       createItemRow(it.name, it.quantity, it.rate);
@@ -946,9 +953,8 @@ function editBill(id) {
   
   recomputeGrandTotals();
   document.getElementById("modal-bill-title").innerText = `Edit Document (#${bill.billNumber})`;
-  if (state.instances.billModal) {
-    state.instances.billModal.show();
-  }
+  const modal = getModalInstance("modal-bill");
+  if (modal) modal.show();
 }
 
 function handleBillSubmit(e) {
@@ -986,9 +992,8 @@ function handleBillSubmit(e) {
   const totalAmount = items.reduce((acc, current) => acc + current.amount, 0);
   toggleLoader(true);
   
-  // Track the Party Type in the Invoice Document [1]
   const payload = {
-    billNumber, partyId, partyName: party.name, partyType: party.type || 'Vendor',
+    billNumber, partyId, partyName: party.name, partyType: party.type || 'Customer',
     billDate, dueDate, items, totalAmount,
     updatedAt: new Date().toISOString()
   };
@@ -1035,12 +1040,10 @@ function handleBillSubmit(e) {
     LocalStorageEngine.save("parties", partyList);
     
     toggleLoader(false);
-    if (state.instances.billModal) {
-      state.instances.billModal.hide();
-    }
+    const modal = getModalInstance("modal-bill");
+    if (modal) modal.hide();
     syncGlobalState();
   } else {
-    // Cloud Firestore Transactions pipeline
     const dbRef = db.collection("bills");
     if (id) {
       const oldBill = state.bills.find(b => b.id === id);
@@ -1066,9 +1069,8 @@ function handleBillSubmit(e) {
         
         recordActivity("Modified Invoice Details", `Updated ${labelText} #${billNumber} for "${party.name}". Net change: ${formatCurrency(diffTotal)}`);
         showNotification(`${labelText} #${billNumber} updated.`, "success");
-        if (state.instances.billModal) {
-          state.instances.billModal.hide();
-        }
+        const modal = getModalInstance("modal-bill");
+        if (modal) modal.hide();
         syncGlobalState();
       }).catch(err => showNotification(err.message, "error"))
         .finally(() => toggleLoader(false));
@@ -1095,9 +1097,8 @@ function handleBillSubmit(e) {
         
         recordActivity("Created Invoice Record", `Recorded ${labelText} #${billNumber} for "${party.name}". Total: ${formatCurrency(totalAmount)}`);
         showNotification(`${labelText} #${billNumber} recorded successfully.`, "success");
-        if (state.instances.billModal) {
-          state.instances.billModal.hide();
-        }
+        const modal = getModalInstance("modal-bill");
+        if (modal) modal.hide();
         syncGlobalState();
       }).catch(err => showNotification(err.message, "error"))
         .finally(() => toggleLoader(false));
@@ -1167,12 +1168,16 @@ function deleteBill(id) {
 function openPaymentModal() {
   document.getElementById("payment-form-id").value = "";
   const DOMNode = getDOM();
-  DOMNode.paymentForm.reset();
-  document.getElementById("payment-form-date").value = new Date().toISOString().substring(0, 10);
-  document.getElementById("modal-payment-title").innerText = "Record Payment Transaction";
-  if (state.instances.paymentModal) {
-    state.instances.paymentModal.show();
-  }
+  if (DOMNode.paymentForm) DOMNode.paymentForm.reset();
+  
+  const paymentFormDate = document.getElementById("payment-form-date");
+  if (paymentFormDate) paymentFormDate.value = new Date().toISOString().substring(0, 10);
+  
+  const titleEl = document.getElementById("modal-payment-title");
+  if (titleEl) titleEl.innerText = "Record Payment Transaction";
+  
+  const modal = getModalInstance("modal-payment");
+  if (modal) modal.show();
 }
 
 function handlePaymentSubmit(e) {
@@ -1191,9 +1196,8 @@ function handlePaymentSubmit(e) {
   
   toggleLoader(true);
   
-  // Track context partyType to identify payments sent vs payments received [1]
   const payload = {
-    partyId, partyName: party.name, partyType: party.type || 'Vendor',
+    partyId, partyName: party.name, partyType: party.type || 'Customer',
     paymentDate, amount, mode,
     isDeleted: false,
     createdAt: new Date().toISOString()
@@ -1222,12 +1226,10 @@ function handlePaymentSubmit(e) {
     recordActivity("Logged Remittance", `${labelText} of ${formatCurrency(amount)} via ${mode} for "${party.name}"`);
     showNotification(`Payment of ${formatCurrency(amount)} logged.`, "success");
     toggleLoader(false);
-    if (state.instances.paymentModal) {
-      state.instances.paymentModal.hide();
-    }
+    const modal = getModalInstance("modal-payment");
+    if (modal) modal.hide();
     syncGlobalState();
   } else {
-    // Cloud Firestore Operations
     const completePayload = {
       ...payload,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -1248,9 +1250,8 @@ function handlePaymentSubmit(e) {
       
       recordActivity("Logged Remittance", `${labelText} of ${formatCurrency(amount)} via ${mode} for "${party.name}"`);
       showNotification(`Payment of ${formatCurrency(amount)} logged.`, "success");
-      if (state.instances.paymentModal) {
-        state.instances.paymentModal.hide();
-      }
+      const modal = getModalInstance("modal-payment");
+      if (modal) modal.hide();
       syncGlobalState();
     }).catch(err => showNotification(err.message, "error"))
       .finally(() => toggleLoader(false));
@@ -1329,7 +1330,6 @@ function generateLedgerAudit() {
   
   const isCust = party.type === 'Customer';
   
-  // Update statement column naming conventions dynamically [1]
   document.getElementById("ledger-headline-title").innerText = `${isCust ? 'CUSTOMER' : 'SUPPLIER'} STATEMENT LEDGER`;
   document.getElementById("ledger-col-debit").innerText = isCust ? "Debit (Invoice Sales) (₹)" : "Debit (Purchase Bills) (₹)";
   document.getElementById("ledger-col-credit").innerText = isCust ? "Credit (Payments Received) (₹)" : "Credit (Payments Settled) (₹)";
@@ -1340,7 +1340,6 @@ function generateLedgerAudit() {
   
   const journal = [];
   
-  // Debit: Invoiced Sales or Purchases [1]
   partyBills.forEach(b => {
     journal.push({
       date: b.billDate,
@@ -1350,7 +1349,6 @@ function generateLedgerAudit() {
     });
   });
   
-  // Credit: Incoming or Outgoing Cash [1]
   partyPayments.forEach(p => {
     journal.push({
       date: p.paymentDate,
@@ -1360,7 +1358,6 @@ function generateLedgerAudit() {
     });
   });
   
-  // Sort chronological order
   journal.sort((a,b) => new Date(a.date) - new Date(b.date));
   
   let balance = 0;
@@ -1382,8 +1379,10 @@ function generateLedgerAudit() {
   if (journal.length === 0) {
     tbodyHTML.push(`<tr><td colspan="5" class="text-center text-muted">No journal transactions on record for this timeline.</td></tr>`);
     DOMNode.btnPrintLedger.disabled = true;
+    DOMNode.btnDownloadLedger.disabled = true;
   } else {
     DOMNode.btnPrintLedger.disabled = false;
+    DOMNode.btnDownloadLedger.disabled = false;
   }
   
   DOMNode.ledgerGenDate.innerText = new Date().toLocaleString();
@@ -1392,6 +1391,72 @@ function generateLedgerAudit() {
   
   DOMNode.ledgerTbody.innerHTML = tbodyHTML.join("");
   document.getElementById("print-area").classList.remove("d-none");
+}
+
+// ==========================================
+// EXCEL-COMPATIBLE LEDGER STATEMENT CSV DOWNLOAD [1]
+// ==========================================
+function downloadLedgerCSV() {
+  const DOMNode = getDOM();
+  const partyId = DOMNode.ledgerPartySelect.value;
+  const party = state.parties.find(p => p.id === partyId);
+  if (!party) return;
+  
+  const partyBills = state.bills.filter(b => b.partyId === partyId);
+  const partyPayments = state.payments.filter(p => p.partyId === partyId);
+  
+  const journal = [];
+  const isCust = party.type === 'Customer';
+  
+  partyBills.forEach(b => {
+    journal.push({
+      date: b.billDate,
+      desc: isCust ? `Sales Invoice #${b.billNumber}` : `Purchase Bill #${b.billNumber}`,
+      debit: b.totalAmount,
+      credit: 0
+    });
+  });
+  
+  partyPayments.forEach(p => {
+    journal.push({
+      date: p.paymentDate,
+      desc: isCust ? `Payment Received (${p.mode})` : `Payment Settled via ${p.mode}`,
+      debit: 0,
+      credit: p.amount
+    });
+  });
+  
+  journal.sort((a,b) => new Date(a.date) - new Date(b.date));
+  
+  const csvRows = [];
+  csvRows.push(`Statement for: ${party.name.replace(/,/g, '')} (${party.type || 'Customer'})`);
+  csvRows.push(`Contact: ${party.mobile || ''}, GST: ${party.gst || ''}`);
+  csvRows.push(`Generated: ${new Date().toLocaleString()}`);
+  csvRows.push("");
+  csvRows.push("Date,Description,Debit (Bills),Credit (Payments),Outstanding Balance");
+  
+  let balance = 0;
+  journal.forEach(txn => {
+    balance += (txn.debit - txn.credit);
+    csvRows.push([
+      txn.date,
+      `"${txn.desc.replace(/"/g, '""')}"`,
+      txn.debit || 0,
+      txn.credit || 0,
+      balance
+    ].join(","));
+  });
+  
+  const csvContent = "data:text/csv;charset=utf-8," + csvRows.join("\n");
+  const encodedUri = encodeURI(csvContent);
+  const link = document.createElement("a");
+  link.setAttribute("href", encodedUri);
+  link.setAttribute("download", `Freskey_Statement_${party.name.replace(/\s+/g, '_')}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  
+  recordActivity("Downloaded Statement", `Downloaded CSV ledger statement for: "${party.name}"`);
 }
 
 // ==========================================
