@@ -15,12 +15,13 @@
   <!-- Style overrides using Freskey Color Palette -->
   <style>
     :root {
+      /* User Custom Palette Variables */
       --freskey-color-1: #EEF0F0; /* Soft canvas background */
-      --freskey-color-2: #0A282A; /* Dark slate-teal text, sidebar and bottom nav background */
-      --freskey-color-3: #63B3B4; /* Accent soft-teal for primary actions and active states */
-      --freskey-color-4: #92A2A9; /* Gray-blue for borders, placeholder, inactive elements */
-      --freskey-color-5: #B94B6E; /* Rose-crimson for outstanding balances, delete actions */
-      --freskey-color-6: #7C7C74; /* Olive-gray for secondary metadata */
+      --freskey-color-2: #0A282A; /* Deep dark slate-teal (Main menu, text contrast) */
+      --freskey-color-3: #63B3B4; /* Soft-teal accent (Buttons, highlights, pills) */
+      --freskey-color-4: #92A2A9; /* Gray-blue (Muted labels, borders) */
+      --freskey-color-5: #B94B6E; /* Crimson-rose (Alerts, dues left, deletes) */
+      --freskey-color-6: #7C7C74; /* Olive-gray (Secondary metadata outlines) */
 
       --light-bg: var(--freskey-color-1);
       --dark-text: var(--freskey-color-2);
@@ -49,7 +50,7 @@
       border-radius: 4px;
     }
 
-    /* Auth Screen styling */
+    /* Auth Screen */
     #auth-screen {
       min-height: 100vh;
       display: flex;
@@ -68,13 +69,13 @@
       border: 1px solid rgba(146, 162, 169, 0.3);
     }
 
-    /* Main Container Layout */
+    /* Layout structure */
     #app-container {
       display: flex;
       min-height: 100vh;
     }
 
-    /* Side navigation bar for Desktop viewports */
+    /* Desktop Sidebar using deep dark-teal color-2 */
     #sidebar {
       width: var(--sidebar-width);
       background-color: var(--freskey-color-2);
@@ -125,7 +126,7 @@
       color: #ffffff;
     }
 
-    /* Active navigation item uses light background pill on the text */
+    /* Active navigation item uses soft teal pill container with dark-teal text */
     .sidebar-item.active a {
       background-color: var(--freskey-color-3);
       color: var(--freskey-color-2);
@@ -148,7 +149,7 @@
       transition: all 0.3s ease;
     }
 
-    /* Main workspace wrapper panel */
+    /* Main workspace panel wrapper */
     #main-content {
       margin-left: var(--sidebar-width);
       margin-top: 64px;
@@ -157,7 +158,7 @@
       transition: all 0.3s ease;
     }
 
-    /* Material design shadow structures */
+    /* Material Cards Styling */
     .dashboard-card {
       background: #ffffff;
       border: 1px solid rgba(146, 162, 169, 0.2);
@@ -211,7 +212,7 @@
       color: #ffffff;
     }
 
-    /* Modern minimalist floating bottom navigation for mobile viewports */
+    /* Minimal Pill-Shaped Floating Bottom Navigation Bar for Mobile */
     .mobile-bottom-nav {
       position: fixed;
       bottom: calc(15px + env(safe-area-inset-bottom));
@@ -254,10 +255,10 @@
       margin-left: 8px;
     }
 
-    /* Pill state for the active tab */
+    /* Active Mobile Nav Pill: Styled exactly like reference image */
     .mobile-nav-item.active {
-      background-color: var(--freskey-color-3);
-      color: var(--freskey-color-2);
+      background-color: var(--freskey-color-3); /* Color-3 soft teal */
+      color: var(--freskey-color-2); /* Color-2 dark text */
     }
 
     .mobile-nav-item.active .mobile-nav-label {
@@ -303,7 +304,7 @@
       box-shadow: 0 0 0 2px var(--freskey-color-2);
     }
 
-    /* Responsive adjustments */
+    /* Responsive mobile structures */
     @media (max-width: 991.98px) {
       #sidebar {
         display: none !important;
@@ -316,6 +317,7 @@
         margin-left: 0;
         width: 100%;
         padding: 1.25rem;
+        /* Safe-area padding prevents overlaps with the floating tab bar */
         padding-bottom: calc(90px + env(safe-area-inset-bottom));
       }
       .mobile-bottom-nav {
@@ -349,9 +351,9 @@
     </div>
   </div>
 
-  <!-- OFFLINE MODE BANNER -->
-  <div id="sandbox-banner" class="bg-warning text-dark text-center py-2 px-3 fw-medium d-none" style="font-size: 0.9rem; border-bottom: 1px solid rgba(10,40,42,0.1);">
-    <i class="bi bi-cloud-slash-fill me-2"></i> Running in <strong>Local Offline Mode</strong>. Data is securely saved to this device's LocalStorage. Add real credentials to app.js for Firebase integration.
+  <!-- OFFLINE MODE BANNER (Automatic LocalStorage Detection fallback alert) -->
+  <div id="sandbox-banner" class="bg-warning text-dark text-center py-2 px-3 fw-medium d-none" style="font-size: 0.9rem; border-bottom: 1px solid rgba(10,40,42,0.1); position: relative; z-index: 101;">
+    <i class="bi bi-cloud-slash-fill me-2"></i> Running in <strong>Local Sandbox Mode (Offline)</strong>. Data is saved in LocalStorage. Enter any email/password to login.
   </div>
 
   <!-- AUTH SCREEN -->
@@ -408,7 +410,7 @@
         </li>
       </ul>
       <div class="p-3 border-top text-center text-muted small" style="border-top: 1px solid rgba(146, 162, 169, 0.2) !important;">
-        <i class="bi bi-shield-check text-success"></i> Data Storage Operational
+        <i class="bi bi-shield-check text-success"></i> Operational
       </div>
     </aside>
 
@@ -563,7 +565,7 @@
                   <th>Mobile Number</th>
                   <th class="text-end">Purchases (Bills)</th>
                   <th class="text-end">Settled (Paid)</th>
-                  <th class="text-end">Outstanding (Due)</th>
+                  <th class="text-end">Dues Left (Outstanding)</th>
                   <th class="text-center">Action Options</th>
                 </tr>
               </thead>
@@ -655,7 +657,7 @@
                 <i class="bi bi-file-text-fill me-2"></i>Generate Statement
               </button>
               <button class="btn btn-outline-dark" id="btn-print-ledger" disabled style="color: var(--freskey-color-2); border-color: var(--freskey-color-4);">
-                <i class="bi bi-printer-fill me-1"></i>Print Ledger
+                <i class="bi bi-printer-fill me-1"></i>Print / Download Ledger
               </button>
             </div>
           </div>
@@ -681,7 +683,7 @@
                   <th style="width: 45%">Description & Remarks</th>
                   <th class="text-end" style="width: 13%">Debit (Bills) (₹)</th>
                   <th class="text-end" style="width: 13%">Credit (Payments) (₹)</th>
-                  <th class="text-end" style="width: 14%">Outstanding Balance (₹)</th>
+                  <th class="text-end" style="width: 14%">Dues Left (₹)</th>
                 </tr>
               </thead>
               <tbody id="ledger-tbody">
@@ -799,7 +801,7 @@
                 <h5 class="fw-bold text-dark mb-3" id="party-detail-total-bills">₹0.00</h5>
                 <p class="text-muted mb-1 small fw-bold">TOTAL REMITTED (PAID)</p>
                 <h5 class="fw-bold text-success mb-3" id="party-detail-total-payments">₹0.00</h5>
-                <p class="text-muted mb-1 small fw-bold">OUTSTANDING DUE BALANCE</p>
+                <p class="text-muted mb-1 small fw-bold">DUES LEFT (OUTSTANDING)</p>
                 <h5 class="fw-bold mb-0 text-danger" id="party-detail-outstanding">₹0.00</h5>
               </div>
             </div>
@@ -957,6 +959,9 @@
       </div>
     </div>
   </div>
+
+  <!-- Bootstrap 5 JavaScript Bundle (CRITICAL FIX FOR MODALS & BUTTONS) -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
   <!-- FIREBASE SDK COMPAT CDN -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
