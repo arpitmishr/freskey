@@ -2,12 +2,12 @@
 // FIREBASE CONFIGURATION & INITIALIZATION
 // ==========================================
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyC_Be4ubX04WMKvwbqgzIFr-z0Uy_Kiaw4",
+  authDomain: "freskey-c5489.firebaseapp.com",
+  projectId: "freskey-c5489",
+  storageBucket: "freskey-c5489.firebasestorage.app",
+  messagingSenderId: "378578648103",
+  appId: "1:378578648103:web:17397cd4d282693ea1a202"
 };
 
 // Check if we are running in Offline Sandbox Mode (no valid keys found)
