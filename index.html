@@ -12,18 +12,22 @@
   <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
   
-  <!-- Custom CSS for Responsive Design and Bottom Nav -->
+  <!-- Custom CSS applying the Freskey Color Palette -->
   <style>
     :root {
-      --primary-blue: #1a73e8;
-      --success-green: #34a853;
-      --error-red: #ea4335;
-      --warning-yellow: #fbbc05;
-      --dark-text: #202124;
-      --light-bg: #f8f9fa;
+      /* Palette Definition */
+      --freskey-color-1: #EEF0F0; /* Soft canvas background */
+      --freskey-color-2: #0A282A; /* Deep slate dark-teal (Text, menus, headers) */
+      --freskey-color-3: #63B3B4; /* Accent soft-teal (Buttons, active tabs, pill highlight) */
+      --freskey-color-4: #92A2A9; /* Gray-blue (Muted text, inactive tabs, borders) */
+      --freskey-color-5: #B94B6E; /* Rose-crimson (Outstanding alerts, deletions, errors) */
+      --freskey-color-6: #7C7C74; /* Olive-gray (Secondary metadata, borders) */
+
+      --light-bg: var(--freskey-color-1);
+      --dark-text: var(--freskey-color-2);
+      --primary-blue: var(--freskey-color-3);
+      --error-red: var(--freskey-color-5);
       --sidebar-width: 260px;
-      --nav-active-green: #d4fc79; /* Custom soft green/yellow pill from reference */
-      --nav-dark-bg: #1e1e24;       /* Pill bar background */
     }
 
     body {
@@ -39,10 +43,10 @@
       height: 6px;
     }
     ::-webkit-scrollbar-track {
-      background: #f1f1f1;
+      background: var(--freskey-color-1);
     }
     ::-webkit-scrollbar-thumb {
-      background: #c1c1c1;
+      background: var(--freskey-color-4);
       border-radius: 4px;
     }
 
@@ -52,16 +56,21 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background: linear-gradient(135deg, #1a73e8 0%, #1557b0 100%);
+      background: linear-gradient(135deg, var(--freskey-color-2) 0%, #153c3e 100%);
     }
 
     .auth-card {
       background: #ffffff;
       border-radius: 12px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+      box-shadow: 0 10px 30px rgba(10, 40, 42, 0.15);
       width: 100%;
       max-width: 420px;
       padding: 2.5rem;
+      border: 1px solid rgba(146, 162, 169, 0.2);
+    }
+
+    .auth-card h4 {
+      color: var(--freskey-color-2);
     }
 
     /* Main Application Layout */
@@ -70,11 +79,11 @@
       min-height: 100vh;
     }
 
-    /* Desktop Sidebar */
+    /* Desktop Sidebar using deep slate dark-teal background */
     #sidebar {
       width: var(--sidebar-width);
-      background-color: #ffffff;
-      border-right: 1px solid #dadce0;
+      background-color: var(--freskey-color-2);
+      border-right: 1px solid rgba(146, 162, 169, 0.2);
       position: fixed;
       top: 0;
       bottom: 0;
@@ -87,13 +96,13 @@
 
     .sidebar-brand {
       padding: 1.5rem 1.25rem;
-      font-size: 1.25rem;
+      font-size: 1.35rem;
       font-weight: 700;
-      color: var(--primary-blue);
-      border-bottom: 1px solid #dadce0;
+      color: var(--freskey-color-3);
+      border-bottom: 1px solid rgba(146, 162, 169, 0.2);
       display: flex;
       align-items: center;
-      gap: 0.5rem;
+      gap: 0.6rem;
     }
 
     .sidebar-menu {
@@ -108,7 +117,7 @@
       align-items: center;
       gap: 1rem;
       padding: 0.85rem 1.5rem;
-      color: #5f6368;
+      color: var(--freskey-color-4);
       text-decoration: none;
       font-weight: 500;
       border-radius: 0 25px 25px 0;
@@ -117,20 +126,21 @@
     }
 
     .sidebar-item a:hover {
-      background-color: #f1f3f4;
-      color: var(--dark-text);
+      background-color: rgba(99, 179, 180, 0.1);
+      color: #ffffff;
     }
 
+    /* Sidebar Active Tab uses the soft teal background with dark-teal text */
     .sidebar-item.active a {
-      background-color: #e8f0fe;
-      color: var(--primary-blue);
+      background-color: var(--freskey-color-3);
+      color: var(--freskey-color-2);
     }
 
     /* Top Bar Header */
     #topbar {
       height: 64px;
       background-color: #ffffff;
-      border-bottom: 1px solid #dadce0;
+      border-bottom: 1px solid rgba(146, 162, 169, 0.25);
       position: fixed;
       top: 0;
       right: 0;
@@ -155,15 +165,15 @@
     /* Material Cards Styling */
     .dashboard-card {
       background: #ffffff;
-      border: 1px solid #dadce0;
+      border: 1px solid rgba(146, 162, 169, 0.2);
       border-radius: 8px;
       padding: 1.5rem;
-      box-shadow: 0 1px 2px 0 rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15);
-      transition: box-shadow 0.2s ease;
+      box-shadow: 0 2px 8px rgba(10, 40, 42, 0.04);
+      transition: box-shadow 0.25s ease;
     }
 
     .dashboard-card:hover {
-      box-shadow: 0 1px 3px 0 rgba(60,64,67,0.3), 0 4px 8px 3px rgba(60,64,67,0.15);
+      box-shadow: 0 4px 16px rgba(10, 40, 42, 0.08);
     }
 
     .card-icon {
@@ -176,17 +186,41 @@
       font-size: 1.5rem;
     }
 
-    /* Floating action buttons & inputs */
-    .btn-primary {
-      background-color: var(--primary-blue);
-      border-color: var(--primary-blue);
+    /* Colors and typography styling */
+    .text-danger, .text-error {
+      color: var(--freskey-color-5) !important;
     }
-    .btn-primary:hover, .btn-primary:focus {
-      background-color: #1557b0;
-      border-color: #1557b0;
+    .text-muted {
+      color: var(--freskey-color-4) !important;
+    }
+    .badge-rose {
+      background-color: var(--freskey-color-5);
+      color: #ffffff;
     }
 
-    /* Activity Timeline */
+    /* Dynamic Button Overrides */
+    .btn-primary {
+      background-color: var(--freskey-color-3);
+      border-color: var(--freskey-color-3);
+      color: var(--freskey-color-2);
+      font-weight: 500;
+    }
+    .btn-primary:hover, .btn-primary:focus, .btn-primary:active {
+      background-color: #52a1a2 !important;
+      border-color: #52a1a2 !important;
+      color: var(--freskey-color-2) !important;
+    }
+
+    .btn-outline-danger {
+      color: var(--freskey-color-5);
+      border-color: var(--freskey-color-5);
+    }
+    .btn-outline-danger:hover {
+      background-color: var(--freskey-color-5);
+      color: #ffffff;
+    }
+
+    /* Recent Activity Timeline styling with custom palette */
     .timeline {
       position: relative;
       padding-left: 2rem;
@@ -200,7 +234,7 @@
       bottom: 0;
       left: 7px;
       width: 2px;
-      background: #dadce0;
+      background: var(--freskey-color-4);
     }
 
     .timeline-item {
@@ -212,12 +246,12 @@
       position: absolute;
       left: -29px;
       top: 4px;
-      background: var(--primary-blue);
+      background: var(--freskey-color-3);
       width: 14px;
       height: 14px;
       border-radius: 50%;
       border: 3px solid #fff;
-      box-shadow: 0 0 0 2px var(--primary-blue);
+      box-shadow: 0 0 0 2px var(--freskey-color-2);
     }
 
     /* Minimal Pill-Shaped Floating Bottom Navigation Bar for Mobile */
@@ -227,25 +261,26 @@
       left: 15px;
       right: 15px;
       height: 60px;
-      background-color: var(--nav-dark-bg);
+      background-color: var(--freskey-color-2); /* Dark slate background matching top sidebar */
       border-radius: 50px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+      box-shadow: 0 10px 30px rgba(10, 40, 42, 0.35);
       z-index: 1040;
-      display: none; /* Desktop hidden */
+      display: none;
       align-items: center;
       justify-content: space-around;
       padding: 0 10px;
+      border: 1px solid rgba(146, 162, 169, 0.15);
     }
 
     .mobile-nav-item {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #9ea0a5;
+      color: var(--freskey-color-4); /* Slate grey inactive icons */
       text-decoration: none;
       font-weight: 500;
       border-radius: 40px;
-      padding: 10px 16px;
+      padding: 8px 16px;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       cursor: pointer;
     }
@@ -262,14 +297,20 @@
       margin-left: 8px;
     }
 
-    /* Active Mobile Nav State: Styled exactly like reference image */
+    /* Active Mobile Nav State: Soft-teal background pill with dark text */
     .mobile-nav-item.active {
-      background-color: var(--nav-active-green);
-      color: #121214;
+      background-color: var(--freskey-color-3); /* Color-3 soft-teal */
+      color: var(--freskey-color-2); /* Color-2 dark text */
     }
 
     .mobile-nav-item.active .mobile-nav-label {
       display: inline;
+    }
+
+    /* General Input Forms */
+    .form-control:focus, .form-select:focus {
+      border-color: var(--freskey-color-3);
+      box-shadow: 0 0 0 0.25rem rgba(99, 179, 180, 0.25);
     }
 
     /* Responsive Adjustments for Mobile and iPhones */
@@ -285,15 +326,15 @@
         margin-left: 0;
         width: 100%;
         padding: 1.25rem;
-        /* Extra padding so bottom floating navigation doesn't overlap view contents */
+        /* Bottom margin to prevent overlay over floating menu bar */
         padding-bottom: calc(90px + env(safe-area-inset-bottom));
       }
       .mobile-bottom-nav {
-        display: flex; /* Display only on tablet/mobile views */
+        display: flex; /* Active only on mobile layout sizes */
       }
     }
 
-    /* Print utility styling for Ledger */
+    /* Print styling */
     @media print {
       body * {
         visibility: hidden;
@@ -314,7 +355,7 @@
 
   <!-- Loading State Overlay -->
   <div id="loading-spinner" class="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center bg-white bg-opacity-75 z-3 d-none">
-    <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+    <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem; color: var(--freskey-color-3) !important;">
       <span class="visually-hidden">Loading...</span>
     </div>
   </div>
@@ -323,7 +364,7 @@
   <div id="auth-screen">
     <div class="auth-card">
       <div class="text-center mb-4">
-        <h4 class="fw-bold text-primary mb-1"><i class="bi bi-wallet2 me-2"></i>Freskey</h4>
+        <h4 class="fw-bold mb-1"><i class="bi bi-wallet2 me-2"></i>Freskey</h4>
         <p class="text-muted small">Arpit & Daksh Management Suite</p>
       </div>
       <form id="login-form">
@@ -346,7 +387,7 @@
   <!-- MAIN APPLICATION LAYOUT -->
   <div id="app-container" class="d-none">
     
-    <!-- DESKTOP SIDEBAR (Auto-hides on mobile) -->
+    <!-- DESKTOP SIDEBAR -->
     <aside id="sidebar">
       <div class="sidebar-brand">
         <i class="bi bi-wallet2 text-primary"></i>
@@ -372,7 +413,7 @@
           <a href="#"><i class="bi bi-clock-history"></i>Activity History</a>
         </li>
       </ul>
-      <div class="p-3 border-top text-center text-muted small">
+      <div class="p-3 border-top text-center text-muted small" style="border-top: 1px solid rgba(146, 162, 169, 0.2) !important;">
         <i class="bi bi-shield-check text-success"></i> Firebase Spark Protected
       </div>
     </aside>
@@ -407,12 +448,12 @@
         <span class="fs-5 fw-bold" id="current-page-title">Dashboard</span>
       </div>
       <div class="d-flex align-items-center gap-2 gap-sm-3">
-        <!-- Quick System Access Link on Mobile Topbar since Activity History was omitted from Bottom Navigation tabs -->
-        <button class="btn btn-sm btn-outline-secondary d-lg-none" onclick="switchView('activity')" title="System Log">
+        <!-- System Activity Navigation on Mobile Topbar -->
+        <button class="btn btn-sm btn-outline-secondary d-lg-none" onclick="switchView('activity')" title="System Log" style="color: var(--freskey-color-2); border-color: var(--freskey-color-4);">
           <i class="bi bi-clock-history"></i>
         </button>
-        <span class="badge bg-light text-dark py-2 px-3 border" id="user-display-badge">
-          <i class="bi bi-person-circle text-primary me-2"></i><span id="nav-user-name">Loading...</span>
+        <span class="badge bg-light text-dark py-2 px-3 border" id="user-display-badge" style="color: var(--freskey-color-2) !important; border: 1px solid rgba(146, 162, 169, 0.3) !important;">
+          <i class="bi bi-person-circle me-2" style="color: var(--freskey-color-3);"></i><span id="nav-user-name">Loading...</span>
         </span>
         <button class="btn btn-outline-danger btn-sm" id="btn-logout" title="Sign Out">
           <i class="bi bi-box-arrow-right me-1"></i>Logout
@@ -432,7 +473,7 @@
                 <h6 class="text-muted text-uppercase mb-1 small fw-bold">Active Parties</h6>
                 <h3 class="fw-bold mb-0" id="dash-total-parties">0</h3>
               </div>
-              <div class="card-icon bg-primary bg-opacity-10 text-primary">
+              <div class="card-icon bg-opacity-10" style="background-color: rgba(99, 179, 180, 0.15); color: var(--freskey-color-3);">
                 <i class="bi bi-people"></i>
               </div>
             </div>
@@ -443,7 +484,7 @@
                 <h6 class="text-muted text-uppercase mb-1 small fw-bold">Total Invoiced</h6>
                 <h3 class="fw-bold mb-0" id="dash-total-bills">₹0.00</h3>
               </div>
-              <div class="card-icon bg-warning bg-opacity-10 text-warning">
+              <div class="card-icon bg-opacity-10" style="background-color: rgba(124, 124, 116, 0.15); color: var(--freskey-color-6);">
                 <i class="bi bi-receipt"></i>
               </div>
             </div>
@@ -454,7 +495,7 @@
                 <h6 class="text-muted text-uppercase mb-1 small fw-bold">Outstanding Due</h6>
                 <h3 class="fw-bold mb-0 text-danger" id="dash-total-outstanding">₹0.00</h3>
               </div>
-              <div class="card-icon bg-danger bg-opacity-10 text-danger">
+              <div class="card-icon bg-opacity-10" style="background-color: rgba(185, 75, 110, 0.15); color: var(--freskey-color-5);">
                 <i class="bi bi-graph-down-arrow"></i>
               </div>
             </div>
@@ -476,7 +517,7 @@
                 <h6 class="text-muted text-uppercase mb-1 small fw-bold">Pending Invoices</h6>
                 <h3 class="fw-bold mb-0" id="dash-pending-count">0</h3>
               </div>
-              <div class="card-icon bg-info bg-opacity-10 text-info">
+              <div class="card-icon bg-opacity-10" style="background-color: rgba(146, 162, 169, 0.15); color: var(--freskey-color-4);">
                 <i class="bi bi-clock-history"></i>
               </div>
             </div>
@@ -485,22 +526,22 @@
 
         <div class="row g-4">
           <div class="col-12 col-xl-8">
-            <div class="card border-0 shadow-sm rounded-3 p-4 bg-white mb-4">
-              <h5 class="fw-bold mb-3">System Actions Quick Access</h5>
+            <div class="card border-0 shadow-sm rounded-3 p-4 bg-white mb-4" style="border: 1px solid rgba(146, 162, 169, 0.2) !important;">
+              <h5 class="fw-bold mb-3" style="color: var(--freskey-color-2);">System Actions Quick Access</h5>
               <div class="d-flex flex-wrap gap-2">
                 <button class="btn btn-primary" onclick="openPartyModal()"><i class="bi bi-plus-circle me-1"></i>New Party</button>
-                <button class="btn btn-warning text-dark" onclick="openBillModal()"><i class="bi bi-file-earmark-plus me-1"></i>New Bill</button>
+                <button class="btn btn-warning text-dark" onclick="openBillModal()" style="background-color: var(--freskey-color-6); border-color: var(--freskey-color-6); color: #ffffff;"><i class="bi bi-file-earmark-plus me-1"></i>New Bill</button>
                 <button class="btn btn-success" onclick="openPaymentModal()"><i class="bi bi-currency-rupee me-1"></i>Record Payment</button>
               </div>
             </div>
           </div>
           <div class="col-12 col-xl-4">
-            <div class="card border-0 shadow-sm rounded-3 p-4 bg-white">
-              <h5 class="fw-bold mb-3">Recent Activity</h5>
+            <div class="card border-0 shadow-sm rounded-3 p-4 bg-white" style="border: 1px solid rgba(146, 162, 169, 0.2) !important;">
+              <h5 class="fw-bold mb-3" style="color: var(--freskey-color-2);">Recent Activity</h5>
               <ul class="timeline" id="dash-timeline-list">
                 <!-- Loaded Dynamically -->
               </ul>
-              <a href="#" class="text-decoration-none small text-primary" onclick="switchView('activity')">View all system events <i class="bi bi-arrow-right"></i></a>
+              <a href="#" class="text-decoration-none small" style="color: var(--freskey-color-3); font-weight: 500;" onclick="switchView('activity')">View all system events <i class="bi bi-arrow-right"></i></a>
             </div>
           </div>
         </div>
@@ -508,11 +549,11 @@
 
       <!-- VIEW: PARTIES -->
       <section id="view-parties" class="view-panel d-none">
-        <div class="card border-0 shadow-sm rounded-3 bg-white p-3 p-sm-4">
+        <div class="card border-0 shadow-sm rounded-3 bg-white p-3 p-sm-4" style="border: 1px solid rgba(146, 162, 169, 0.2) !important;">
           <div class="d-flex flex-column flex-sm-row justify-content-between align-items-stretch align-items-sm-center gap-3 mb-4">
             <div class="input-group search-bar" style="max-width: 100%;">
-              <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
-              <input type="text" class="form-control border-start-0" id="party-search-input" placeholder="Search party details...">
+              <span class="input-group-text bg-white border-end-0" style="border-color: rgba(146, 162, 169, 0.3);"><i class="bi bi-search text-muted"></i></span>
+              <input type="text" class="form-control border-start-0" id="party-search-input" placeholder="Search party details..." style="border-color: rgba(146, 162, 169, 0.3);">
             </div>
             <button class="btn btn-primary shadow-sm" onclick="openPartyModal()">
               <i class="bi bi-person-plus-fill me-2"></i>Create New Party
@@ -542,11 +583,11 @@
 
       <!-- VIEW: BILLS -->
       <section id="view-bills" class="view-panel d-none">
-        <div class="card border-0 shadow-sm rounded-3 bg-white p-3 p-sm-4">
+        <div class="card border-0 shadow-sm rounded-3 bg-white p-3 p-sm-4" style="border: 1px solid rgba(146, 162, 169, 0.2) !important;">
           <div class="d-flex flex-column flex-sm-row justify-content-between align-items-stretch align-items-sm-center gap-3 mb-4">
             <div class="input-group search-bar" style="max-width: 100%;">
-              <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
-              <input type="text" class="form-control border-start-0" id="bill-search-input" placeholder="Search bill / party...">
+              <span class="input-group-text bg-white border-end-0" style="border-color: rgba(146, 162, 169, 0.3);"><i class="bi bi-search text-muted"></i></span>
+              <input type="text" class="form-control border-start-0" id="bill-search-input" placeholder="Search bill / party..." style="border-color: rgba(146, 162, 169, 0.3);">
             </div>
             <button class="btn btn-primary shadow-sm" onclick="openBillModal()">
               <i class="bi bi-file-earmark-plus-fill me-2"></i>Create New Bill
@@ -575,11 +616,11 @@
 
       <!-- VIEW: PAYMENTS -->
       <section id="view-payments" class="view-panel d-none">
-        <div class="card border-0 shadow-sm rounded-3 bg-white p-3 p-sm-4">
+        <div class="card border-0 shadow-sm rounded-3 bg-white p-3 p-sm-4" style="border: 1px solid rgba(146, 162, 169, 0.2) !important;">
           <div class="d-flex flex-column flex-sm-row justify-content-between align-items-stretch align-items-sm-center gap-3 mb-4">
             <div class="input-group search-bar" style="max-width: 100%;">
-              <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
-              <input type="text" class="form-control border-start-0" id="payment-search-input" placeholder="Search party or payments...">
+              <span class="input-group-text bg-white border-end-0" style="border-color: rgba(146, 162, 169, 0.3);"><i class="bi bi-search text-muted"></i></span>
+              <input type="text" class="form-control border-start-0" id="payment-search-input" placeholder="Search party or payments..." style="border-color: rgba(146, 162, 169, 0.3);">
             </div>
             <button class="btn btn-primary shadow-sm" onclick="openPaymentModal()">
               <i class="bi bi-currency-rupee me-2"></i>Record Payment
@@ -607,11 +648,11 @@
 
       <!-- VIEW: LEDGER -->
       <section id="view-ledger" class="view-panel d-none">
-        <div class="card border-0 shadow-sm rounded-3 bg-white p-3 p-sm-4 mb-4">
+        <div class="card border-0 shadow-sm rounded-3 bg-white p-3 p-sm-4 mb-4" style="border: 1px solid rgba(146, 162, 169, 0.2) !important;">
           <div class="row align-items-end g-3">
             <div class="col-12 col-md-6">
-              <label for="ledger-party-select" class="form-label fw-bold">Select Party Vendor</label>
-              <select class="form-select" id="ledger-party-select">
+              <label for="ledger-party-select" class="form-label fw-bold" style="color: var(--freskey-color-2);">Select Party Vendor</label>
+              <select class="form-select" id="ledger-party-select" style="border-color: rgba(146, 162, 169, 0.3);">
                 <option value="">-- Choose Party --</option>
               </select>
             </div>
@@ -619,21 +660,21 @@
               <button class="btn btn-primary flex-grow-1" id="btn-generate-ledger">
                 <i class="bi bi-file-text-fill me-2"></i>Generate Statement
               </button>
-              <button class="btn btn-outline-dark" id="btn-print-ledger" disabled>
+              <button class="btn btn-outline-dark" id="btn-print-ledger" disabled style="color: var(--freskey-color-2); border-color: var(--freskey-color-4);">
                 <i class="bi bi-printer-fill me-1"></i>Print Ledger
               </button>
             </div>
           </div>
         </div>
 
-        <div id="print-area" class="card border-0 shadow-sm rounded-3 bg-white p-3 p-sm-4 d-none">
-          <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start border-bottom pb-4 mb-4 gap-3">
+        <div id="print-area" class="card border-0 shadow-sm rounded-3 bg-white p-3 p-sm-4 d-none" style="border: 1px solid rgba(146, 162, 169, 0.2) !important;">
+          <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start border-bottom pb-4 mb-4 gap-3" style="border-bottom-color: rgba(146, 162, 169, 0.2) !important;">
             <div>
-              <h2 class="fw-bold text-primary mb-1">VENDOR ACCOUNT LEDGER</h2>
+              <h2 class="fw-bold mb-1" style="color: var(--freskey-color-2);">VENDOR ACCOUNT LEDGER</h2>
               <p class="text-muted mb-0 small">Generated automatically on: <span id="ledger-generation-date">--</span></p>
             </div>
             <div class="text-start text-sm-end">
-              <h5 class="fw-bold mb-1" id="ledger-company-name">--</h5>
+              <h5 class="fw-bold mb-1" id="ledger-company-name" style="color: var(--freskey-color-2);">--</h5>
               <p class="text-muted mb-0 small" id="ledger-company-info">--</p>
             </div>
           </div>
@@ -661,10 +702,10 @@
 
       <!-- VIEW: ACTIVITY HISTORY -->
       <section id="view-activity" class="view-panel d-none">
-        <div class="card border-0 shadow-sm rounded-3 bg-white p-3 p-sm-4">
-          <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-4">
-            <h5 class="mb-0 fw-bold">System Activities Logs</h5>
-            <span class="badge bg-primary px-3 py-2">Security Auditable (Read Only)</span>
+        <div class="card border-0 shadow-sm rounded-3 bg-white p-3 p-sm-4" style="border: 1px solid rgba(146, 162, 169, 0.2) !important;">
+          <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-4" style="border-bottom-color: rgba(146, 162, 169, 0.2) !important;">
+            <h5 class="mb-0 fw-bold" style="color: var(--freskey-color-2);">System Activities Logs</h5>
+            <span class="badge px-3 py-2" style="background-color: var(--freskey-color-2); color: #ffffff;">Security Auditable (Read Only)</span>
           </div>
           <div class="table-responsive">
             <table class="table table-hover align-middle">
@@ -702,9 +743,9 @@
   <!-- MODAL: ADD / EDIT PARTY -->
   <div class="modal fade" id="modal-party" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content border-0 shadow-lg">
+      <div class="modal-content border-0 shadow-lg" style="border: 1px solid rgba(146, 162, 169, 0.2) !important;">
         <div class="modal-header border-bottom py-3">
-          <h5 class="modal-title fw-bold" id="modal-party-title">Create Vendor Party</h5>
+          <h5 class="modal-title fw-bold" id="modal-party-title" style="color: var(--freskey-color-2);">Create Vendor Party</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <form id="party-form">
@@ -743,20 +784,20 @@
   <!-- MODAL: PARTY DETAIL VIEW -->
   <div class="modal fade" id="modal-party-details" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
-      <div class="modal-content border-0 shadow-lg">
-        <div class="modal-header bg-primary text-white py-3">
+      <div class="modal-content border-0 shadow-lg" style="border: 1px solid rgba(146, 162, 169, 0.2) !important;">
+        <div class="modal-header text-white py-3" style="background-color: var(--freskey-color-2);">
           <h5 class="modal-title fw-bold" id="party-detail-title">Party Profile Information</h5>
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body p-4">
-          <div class="row g-4 mb-4 border-bottom pb-4">
+          <div class="row g-4 mb-4 border-bottom pb-4" style="border-bottom-color: rgba(146, 162, 169, 0.2) !important;">
             <div class="col-12 col-md-6">
               <p class="text-muted mb-1 small fw-bold">MOBILE</p>
-              <h6 class="fw-bold mb-3" id="party-detail-mobile">--</h6>
+              <h6 class="fw-bold mb-3" id="party-detail-mobile" style="color: var(--freskey-color-2);">--</h6>
               <p class="text-muted mb-1 small fw-bold">GST NUMBER</p>
-              <h6 class="fw-bold mb-3" id="party-detail-gst">--</h6>
+              <h6 class="fw-bold mb-3" id="party-detail-gst" style="color: var(--freskey-color-2);">--</h6>
               <p class="text-muted mb-1 small fw-bold">ADDRESS</p>
-              <p class="mb-0" id="party-detail-address">--</p>
+              <p class="mb-0" id="party-detail-address" style="color: var(--freskey-color-2);">--</p>
             </div>
             <div class="col-12 col-md-6 border-start-md ps-md-4">
               <div class="p-3 bg-light rounded-3">
@@ -765,11 +806,11 @@
                 <p class="text-muted mb-1 small fw-bold">TOTAL AMOUNT PAID</p>
                 <h5 class="fw-bold text-success mb-3" id="party-detail-total-payments">₹0.00</h5>
                 <p class="text-muted mb-1 small fw-bold">OUTSTANDING DUE</p>
-                <h5 class="fw-bold text-danger mb-0" id="party-detail-outstanding">₹0.00</h5>
+                <h5 class="fw-bold mb-0 text-danger" id="party-detail-outstanding">₹0.00</h5>
               </div>
             </div>
           </div>
-          <h6 class="fw-bold mb-3"><i class="bi bi-journal-text text-primary me-2"></i>Recent Associated Bills & Payments</h6>
+          <h6 class="fw-bold mb-3" style="color: var(--freskey-color-2);"><i class="bi bi-journal-text me-2" style="color: var(--freskey-color-3);"></i>Recent Associated Bills & Payments</h6>
           <div class="table-responsive">
             <table class="table table-bordered table-sm small align-middle">
               <thead class="table-light">
@@ -796,9 +837,9 @@
   <!-- MODAL: ADD / EDIT BILL -->
   <div class="modal fade" id="modal-bill" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered">
-      <div class="modal-content border-0 shadow-lg">
+      <div class="modal-content border-0 shadow-lg" style="border: 1px solid rgba(146, 162, 169, 0.2) !important;">
         <div class="modal-header border-bottom py-3">
-          <h5 class="modal-title fw-bold" id="modal-bill-title">Create Vendor Purchase Invoice</h5>
+          <h5 class="modal-title fw-bold" id="modal-bill-title" style="color: var(--freskey-color-2);">Create Vendor Purchase Invoice</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <form id="bill-form">
@@ -834,7 +875,7 @@
               </div>
             </div>
 
-            <h6 class="fw-bold border-bottom pb-2 mb-3">Purchased Items Breakdown</h6>
+            <h6 class="fw-bold border-bottom pb-2 mb-3" style="color: var(--freskey-color-2);">Purchased Items Breakdown</h6>
             
             <div class="table-responsive mb-3">
               <table class="table table-bordered align-middle" id="bill-items-table" style="min-width: 600px;">
@@ -854,13 +895,13 @@
             </div>
 
             <div class="d-flex flex-column flex-sm-row justify-content-between align-items-stretch align-items-sm-center gap-3 mb-4">
-              <button type="button" class="btn btn-outline-primary btn-sm" id="btn-add-item-row">
+              <button type="button" class="btn btn-outline-primary btn-sm" id="btn-add-item-row" style="color: var(--freskey-color-2); border-color: var(--freskey-color-3);">
                 <i class="bi bi-plus-circle-fill me-1"></i>Add Item Row
               </button>
               <div class="text-end" style="min-width: 200px;">
-                <div class="d-flex justify-content-between border-top pt-2">
+                <div class="d-flex justify-content-between border-top pt-2" style="border-top-color: rgba(146, 162, 169, 0.2) !important;">
                   <span class="fw-bold me-2">Grand Total Amount:</span>
-                  <span class="fw-bold text-primary fs-5" id="bill-items-grand-total">₹0.00</span>
+                  <span class="fw-bold fs-5" id="bill-items-grand-total" style="color: var(--freskey-color-3);">₹0.00</span>
                 </div>
               </div>
             </div>
@@ -878,9 +919,9 @@
   <!-- MODAL: ADD / EDIT PAYMENT -->
   <div class="modal fade" id="modal-payment" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content border-0 shadow-lg">
+      <div class="modal-content border-0 shadow-lg" style="border: 1px solid rgba(146, 162, 169, 0.2) !important;">
         <div class="modal-header border-bottom py-3">
-          <h5 class="modal-title fw-bold" id="modal-payment-title">Record Payment</h5>
+          <h5 class="modal-title fw-bold" id="modal-payment-title" style="color: var(--freskey-color-2);">Record Payment</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <form id="payment-form">
