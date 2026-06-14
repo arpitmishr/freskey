@@ -1,4 +1,3 @@
-
 const firebaseConfig = {
   apiKey: "AIzaSyC_Be4ubX04WMKvwbqgzIFr-z0Uy_Kiaw4",
   authDomain: "freskey-c5489.firebaseapp.com",
@@ -8,21 +7,28 @@ const firebaseConfig = {
   appId: "1:378578648103:web:17397cd4d282693ea1a202"
 };
 
-// Auto Detection fallback to alert user if credentials were not provided.
-if (firebaseConfig.apiKey === "YOUR_API_KEY") {
-  alert("WARNING: Please insert your customized Firebase config parameter keys within app.js to link up backend database records.");
+// Check if we are running in Offline Sandbox Mode (no valid keys found)
+const isSandboxMode = (firebaseConfig.apiKey === "YOUR_API_KEY" || !firebaseConfig.apiKey);
+
+let db = null;
+let auth = null;
+
+if (!isSandboxMode) {
+  try {
+    firebase.initializeApp(firebaseConfig);
+    auth = firebase.auth();
+    db = firebase.firestore();
+    auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+  } catch (e) {
+    console.error("Firebase config loaded unsuccessfully. Reverting to Mock Sandbox Mode.", e);
+  }
+} else {
+  // Show localized offline alert
+  document.getElementById("sandbox-banner").classList.remove("d-none");
 }
 
-// Initializing the Firebase application compatibility environment.
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db = firebase.firestore();
-
-// Set persistent auth across closing tab sessions
-auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
-
 // ==========================================
-// APP MEMORY STATE
+// APPLICATION MEMORY STORAGE LAYERS
 // ==========================================
 const state = {
   currentUser: null,
@@ -41,7 +47,7 @@ const state = {
 };
 
 // ==========================================
-// DOCUMENT LEVEL SELECTORS
+// DOM ELEMENT REF CORES
 // ==========================================
 const DOM = {
   authScreen: document.getElementById("auth-screen"),
@@ -55,7 +61,7 @@ const DOM = {
   currentPageTitle: document.getElementById("current-page-title"),
   loadingSpinner: document.getElementById("loading-spinner"),
   
-  // Dashboard Metrics UI Selectors
+  // Dashboard Nodes
   dashTotalParties: document.getElementById("dash-total-parties"),
   dashTotalBills: document.getElementById("dash-total-bills"),
   dashTotalOutstanding: document.getElementById("dash-total-outstanding"),
@@ -63,39 +69,47 @@ const DOM = {
   dashPendingCount: document.getElementById("dash-pending-count"),
   dashTimelineList: document.getElementById("dash-timeline-list"),
   
-  // Tables Selectors
+  // View Table Bodies
   partiesTbody: document.getElementById("parties-tbody"),
   billsTbody: document.getElementById("bills-tbody"),
   paymentsTbody: document.getElementById("payments-tbody"),
   activitiesTbody: document.getElementById("activities-tbody"),
   
-  // Search Selectors
+  // Dynamic Searches
   partySearch: document.getElementById("party-search-input"),
   billSearch: document.getElementById("bill-search-input"),
   paymentSearch: document.getElementById("payment-search-input"),
   
-  // Forms & Modal Elements
-  partyForm: document.getElementById("party-form"),
-  billForm: document.getElementById("bill-form"),
-  paymentForm: document.getElementById("payment-form"),
-  
-  // Bill Dynamic Items Elements
+  // Dynamic item rows inputs inside Bill Modal
   billItemsTbody: document.getElementById("bill-items-tbody"),
   btnAddItemRow: document.getElementById("btn-add-item-row"),
   billItemsGrandTotal: document.getElementById("bill-items-grand-total"),
   
-  // Ledger View Specific Selector
+  // Account statement selections
   ledgerPartySelect: document.getElementById("ledger-party-select"),
   btnGenerateLedger: document.getElementById("btn-generate-ledger"),
   btnPrintLedger: document.getElementById("btn-print-ledger"),
   ledgerTbody: document.getElementById("ledger-tbody"),
   ledgerGenDate: document.getElementById("ledger-generation-date"),
   ledgerCompName: document.getElementById("ledger-company-name"),
-  ledgerCompInfo: document.getElementById("ledger-company-info")
+  ledgerCompInfo: document.getElementById("ledger-company-info"),
+  
+  // Direct form nodes
+  partyForm: document.getElementById("party-form"),
+  billForm: document.getElementById("bill-form"),
+  paymentForm: document.getElementById("payment-form")
 };
 
 // ==========================================
-// TOAST NOTIFICATIONS HELPER
+// OFFLINE DATABASE STORAGE LAYER WRAPPER
+// ==========================================
+const LocalStorageEngine = {
+  get: (key) => JSON.parse(localStorage.getItem(`freskey_${key}`)) || [],
+  save: (key, val) => localStorage.setItem(`freskey_${key}`, JSON.stringify(val))
+};
+
+// ==========================================
+// SYSTEM ALERTS & FEEDBACK
 // ==========================================
 function showNotification(message, type = "info") {
   const toastEl = document.getElementById("app-toast");
@@ -116,41 +130,67 @@ function toggleLoader(show) {
 }
 
 // ==========================================
-// AUTHENTICATION OBSERVER & ROUTER FLOWS
+// SECURE BOOTSTRAPPING ENGINE (LOAD)
 // ==========================================
-auth.onAuthStateChanged((user) => {
-  if (user) {
-    state.currentUser = user;
-    
-    // Check and maps system specific Operators (Arpit or Daksh)
-    const email = user.email.toLowerCase();
-    if (email.includes("arpit")) {
-      state.userName = "Arpit";
-    } else if (email.includes("daksh")) {
-      state.userName = "Daksh";
-    } else {
-      state.userName = user.displayName || user.email.split("@")[0];
-    }
-    
+document.addEventListener("DOMContentLoaded", () => {
+  // Bind forms
+  DOM.partyForm.addEventListener("submit", handlePartySubmit);
+  DOM.billForm.addEventListener("submit", handleBillSubmit);
+  DOM.paymentForm.addEventListener("submit", handlePaymentSubmit);
+  DOM.btnAddItemRow.addEventListener("click", () => createItemRow("", 1, 0));
+  DOM.btnGenerateLedger.addEventListener("click", generateLedgerAudit);
+  DOM.btnPrintLedger.addEventListener("click", () => window.print());
+
+  // Bind dynamic real-time searches
+  DOM.partySearch.addEventListener("input", (e) => renderPartiesUI(e.target.value.trim()));
+  DOM.billSearch.addEventListener("input", (e) => renderBillsUI(e.target.value.trim()));
+  DOM.paymentSearch.addEventListener("input", (e) => renderPaymentsUI(e.target.value.trim()));
+
+  // Bind Auth state configurations
+  if (!isSandboxMode && auth) {
+    auth.onAuthStateChanged((user) => {
+      if (user) {
+        state.currentUser = user;
+        const email = user.email.toLowerCase();
+        state.userName = email.includes("arpit") ? "Arpit" : (email.includes("daksh") ? "Daksh" : user.email.split("@")[0]);
+        DOM.navUserName.innerText = state.userName;
+        
+        DOM.authScreen.classList.add("d-none");
+        DOM.appContainer.classList.remove("d-none");
+        
+        initializeBootstrapModals();
+        bootstrapBackend();
+      } else {
+        handleSignOutCleanup();
+      }
+    });
+  } else {
+    // If running in local Offline mode, mock user and launch directly
+    state.currentUser = { email: "local.sandbox@freskey.com" };
+    state.userName = "Local Administrator";
     DOM.navUserName.innerText = state.userName;
     DOM.authScreen.classList.add("d-none");
     DOM.appContainer.classList.remove("d-none");
     
-    // Fast initialize Bootstrap Modal wrappers.
-    state.instances.partyModal = new bootstrap.Modal(document.getElementById("modal-party"));
-    state.instances.billModal = new bootstrap.Modal(document.getElementById("modal-bill"));
-    state.instances.paymentModal = new bootstrap.Modal(document.getElementById("modal-payment"));
-    state.instances.partyDetailModal = new bootstrap.Modal(document.getElementById("modal-party-details"));
-    
-    // Pull full environment dataset
-    bootstrapBackend();
-  } else {
-    state.currentUser = null;
-    DOM.authScreen.classList.remove("d-none");
-    DOM.appContainer.classList.add("d-none");
+    initializeBootstrapModals();
+    bootstrapLocalData();
   }
 });
 
+function initializeBootstrapModals() {
+  state.instances.partyModal = new bootstrap.Modal(document.getElementById("modal-party"));
+  state.instances.billModal = new bootstrap.Modal(document.getElementById("modal-bill"));
+  state.instances.paymentModal = new bootstrap.Modal(document.getElementById("modal-payment"));
+  state.instances.partyDetailModal = new bootstrap.Modal(document.getElementById("modal-party-details"));
+}
+
+function handleSignOutCleanup() {
+  state.currentUser = null;
+  DOM.authScreen.classList.remove("d-none");
+  DOM.appContainer.classList.add("d-none");
+}
+
+// Handler to capture user login submissions
 DOM.loginForm.addEventListener("submit", (e) => {
   e.preventDefault();
   toggleLoader(true);
@@ -159,42 +199,148 @@ DOM.loginForm.addEventListener("submit", (e) => {
   const email = DOM.loginEmail.value.trim();
   const password = DOM.loginPassword.value;
   
-  auth.signInWithEmailAndPassword(email, password)
-    .then(() => {
-      toggleLoader(false);
-      DOM.loginForm.reset();
-    })
-    .catch((error) => {
-      toggleLoader(false);
-      DOM.loginErrorMsg.innerText = error.message;
-      DOM.loginErrorMsg.classList.remove("d-none");
-    });
+  if (isSandboxMode) {
+    // offline local bypass accepts all credentials safely to support testing
+    state.currentUser = { email: email };
+    state.userName = email.toLowerCase().includes("arpit") ? "Arpit" : (email.toLowerCase().includes("daksh") ? "Daksh" : "Offline Admin");
+    DOM.navUserName.innerText = state.userName;
+    toggleLoader(false);
+    
+    DOM.authScreen.classList.add("d-none");
+    DOM.appContainer.classList.remove("d-none");
+    
+    initializeBootstrapModals();
+    bootstrapLocalData();
+    showNotification("Logged in to Local Sandbox.", "success");
+    recordActivity("Logged In", "Offline session started on this browser.");
+  } else {
+    auth.signInWithEmailAndPassword(email, password)
+      .then(() => {
+        toggleLoader(false);
+        DOM.loginForm.reset();
+      })
+      .catch((error) => {
+        toggleLoader(false);
+        DOM.loginErrorMsg.innerText = error.message;
+        DOM.loginErrorMsg.classList.remove("d-none");
+      });
+  }
 });
 
 DOM.btnLogout.addEventListener("click", () => {
   toggleLoader(true);
-  auth.signOut()
-    .then(() => {
-      toggleLoader(false);
-      showNotification("Successfully logged out.", "info");
-    })
-    .catch(() => toggleLoader(false));
+  if (isSandboxMode) {
+    toggleLoader(false);
+    handleSignOutCleanup();
+  } else {
+    auth.signOut()
+      .then(() => {
+        toggleLoader(false);
+      })
+      .catch(() => toggleLoader(false));
+  }
 });
 
-// SPA View switching Router
+// ==========================================
+// DATA INTEGRATION OPERATIONS
+// ==========================================
+function bootstrapBackend() {
+  toggleLoader(true);
+  Promise.all([
+    db.collection("parties").where("isDeleted", "==", false).get(),
+    db.collection("bills").where("isDeleted", "==", false).get(),
+    db.collection("payments").where("isDeleted", "==", false).get(),
+    db.collection("activities").orderBy("timestamp", "desc").limit(50).get()
+  ]).then(([partiesSn, billsSn, paymentsSn, activitiesSn]) => {
+    state.parties = partiesSn.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    state.bills = billsSn.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    state.payments = paymentsSn.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    state.activities = activitiesSn.docs.map(doc => {
+      const d = doc.data();
+      return { id: doc.id, ...d, localStamp: d.timestamp ? d.timestamp.toDate() : new Date() };
+    });
+    
+    toggleLoader(false);
+    syncGlobalState();
+  }).catch(error => {
+    toggleLoader(false);
+    showNotification("Error downloading backend data: " + error.message, "error");
+  });
+}
+
+function bootstrapLocalData() {
+  state.parties = LocalStorageEngine.get("parties").filter(p => !p.isDeleted);
+  state.bills = LocalStorageEngine.get("bills").filter(b => !b.isDeleted);
+  state.payments = LocalStorageEngine.get("payments").filter(p => !p.isDeleted);
+  state.activities = LocalStorageEngine.get("activities");
+  
+  // Re-map activity timestamps
+  state.activities = state.activities.map(act => ({
+    ...act,
+    localStamp: act.timestamp ? new Date(act.timestamp) : new Date()
+  }));
+  
+  syncGlobalState();
+}
+
+function syncGlobalState() {
+  renderState(state.activeView);
+  populateDropdowns();
+}
+
+function populateDropdowns() {
+  const dropdownHTML = ['<option value="">-- Choose Vendor --</option>'];
+  state.parties.forEach(p => {
+    dropdownHTML.push(`<option value="${p.id}">${escapeHTML(p.name)}</option>`);
+  });
+  DOM.ledgerPartySelect.innerHTML = dropdownHTML.join("");
+  document.getElementById("bill-form-party-id").innerHTML = dropdownHTML.join("");
+  document.getElementById("payment-form-party-id").innerHTML = dropdownHTML.join("");
+}
+
+// ==========================================
+// SYSTEM ACTIVITIES ENGINE
+// ==========================================
+function recordActivity(action, description) {
+  const activityDoc = {
+    userName: state.userName,
+    action: action,
+    description: description,
+    timestamp: isSandboxMode ? new Date().toISOString() : firebase.firestore.FieldValue.serverTimestamp()
+  };
+  
+  if (isSandboxMode) {
+    const list = LocalStorageEngine.get("activities");
+    list.unshift(activityDoc);
+    LocalStorageEngine.save("activities", list.slice(0, 100)); // Maintain log depth
+    
+    // update state locally
+    activityDoc.localStamp = new Date();
+    state.activities.unshift(activityDoc);
+    renderDashboardUI();
+  } else {
+    db.collection("activities").add(activityDoc).catch(e => {
+      console.error("Activity logging failed", e);
+    });
+  }
+}
+
+// ==========================================
+// ROUTER & VIEW RENDERING
+// ==========================================
 function switchView(targetView) {
   state.activeView = targetView;
   
-  // Toggle Views container visibility
   document.querySelectorAll(".view-panel").forEach(panel => {
     panel.classList.add("d-none");
   });
+  
   const viewElement = document.getElementById(`view-${targetView}`);
   if (viewElement) {
     viewElement.classList.remove("d-none");
   }
   
-  // Manage CSS styles on desktop sidebar elements
+  // Desktop sidebar adjustments
   document.querySelectorAll(".sidebar-item").forEach(item => {
     item.classList.remove("active");
     if (item.getAttribute("data-view") === targetView) {
@@ -202,7 +348,7 @@ function switchView(targetView) {
     }
   });
 
-  // Manage CSS styles on mobile floating navigation bar
+  // Mobile navigation bottom bar adjustments
   document.querySelectorAll(".mobile-nav-item").forEach(item => {
     item.classList.remove("active");
     if (item.getAttribute("data-view") === targetView) {
@@ -210,121 +356,19 @@ function switchView(targetView) {
     }
   });
 
-  // Dynamic page title mapping adjustments
   const textMappings = {
     dashboard: "Dashboard",
-    parties: "Parties",
-    bills: "Bills",
-    payments: "Payments",
-    ledger: "Ledger",
-    activity: "Activity History"
+    parties: "Vendor Party Profiles",
+    bills: "Bills (Purchases)",
+    payments: "Payments Log",
+    ledger: "Ledger Book Summary",
+    activity: "Operational History logs"
   };
   DOM.currentPageTitle.innerText = textMappings[targetView] || "Freskey";
   
-  // Refresh layout components
   renderState(targetView);
 }
 
-// Attach Event Listeners to Desktop Sidebar Options
-document.querySelectorAll(".sidebar-item").forEach(item => {
-  item.addEventListener("click", (e) => {
-    e.preventDefault();
-    const view = item.getAttribute("data-view");
-    switchView(view);
-  });
-});
-
-// Attach Event Listeners to Mobile Floating Navigation Tabs
-document.querySelectorAll(".mobile-nav-item").forEach(item => {
-  item.addEventListener("click", (e) => {
-    e.preventDefault();
-    const view = item.getAttribute("data-view");
-    switchView(view);
-  });
-});
-
-// ==========================================
-// SYSTEM LOG ENGINE (READ-ONLY ACTIVITY HISTORY)
-// ==========================================
-function recordActivity(action, description) {
-  const timestamp = firebase.firestore.FieldValue.serverTimestamp();
-  const activityDoc = {
-    userName: state.userName,
-    action: action,
-    description: description,
-    timestamp: timestamp
-  };
-  
-  db.collection("activities").add(activityDoc).catch(e => {
-    console.error("Activity logging failed", e);
-  });
-}
-
-// ==========================================
-// CORE FIREBASE DATA INTEGRATOR (SPARK-OPTIMIZED STATIC FETCH)
-// ==========================================
-function bootstrapBackend() {
-  toggleLoader(true);
-  
-  // Parallel asynchronous calls to optimize resource usage and speed up data load
-  Promise.all([
-    db.collection("parties").where("isDeleted", "==", false).get(),
-    db.collection("bills").where("isDeleted", "==", false).get(),
-    db.collection("payments").where("isDeleted", "==", false).get(),
-    db.collection("activities").orderBy("timestamp", "desc").limit(100).get()
-  ]).then(([partiesSnapshot, billsSnapshot, paymentsSnapshot, activitiesSnapshot]) => {
-    
-    // Parse snapshot states into state storage
-    state.parties = [];
-    partiesSnapshot.forEach(doc => {
-      state.parties.push({ id: doc.id, ...doc.data() });
-    });
-    
-    state.bills = [];
-    billsSnapshot.forEach(doc => {
-      state.bills.push({ id: doc.id, ...doc.data() });
-    });
-    
-    state.payments = [];
-    paymentsSnapshot.forEach(doc => {
-      state.payments.push({ id: doc.id, ...doc.data() });
-    });
-    
-    state.activities = [];
-    activitiesSnapshot.forEach(doc => {
-      state.activities.push({ id: doc.id, ...doc.data() });
-    });
-    
-    toggleLoader(false);
-    renderState(state.activeView);
-    populateDropdowns();
-  }).catch(error => {
-    toggleLoader(false);
-    showNotification("Error downloading backend structures: " + error.message, "error");
-  });
-}
-
-// Utility updater function to refresh local cache storage following updates/deletions.
-function updateLocalStateAndSync() {
-  // Rather than running resource-heavy queries, build UI computations dynamically in-memory.
-  renderState(state.activeView);
-  populateDropdowns();
-}
-
-function populateDropdowns() {
-  const dropdownHTML = ['<option value="">-- Choose Party --</option>'];
-  state.parties.forEach(p => {
-    dropdownHTML.push(`<option value="${p.id}">${escapeHTML(p.name)}</option>`);
-  });
-  
-  DOM.ledgerPartySelect.innerHTML = dropdownHTML.join("");
-  document.getElementById("bill-form-party-id").innerHTML = dropdownHTML.join("");
-  document.getElementById("payment-form-party-id").innerHTML = dropdownHTML.join("");
-}
-
-// ==========================================
-// TEMPLATE ENGINE & DATA RENDERING INTERFACE
-// ==========================================
 function renderState(view) {
   switch (view) {
     case "dashboard":
@@ -339,49 +383,47 @@ function renderState(view) {
     case "payments":
       renderPaymentsUI();
       break;
-    case "ledger":
-      // Controlled via specific generation button
-      break;
     case "activity":
       renderActivitiesUI();
       break;
   }
 }
 
-// --- VIEW WRITER: DASHBOARD ---
+// ==========================================
+// VIEW WRITERS (UI RENDERING)
+// ==========================================
 function renderDashboardUI() {
-  // Aggregate calculations using in-memory state
   const totalParties = state.parties.length;
   
-  let totalBilled = 0;
-  state.bills.forEach(b => { totalBilled += Number(b.totalAmount || 0); });
+  let totalPurchased = 0;
+  state.bills.forEach(b => { totalPurchased += Number(b.totalAmount || 0); });
   
   let totalPaid = 0;
   state.payments.forEach(p => { totalPaid += Number(p.amount || 0); });
   
-  let totalOutstanding = 0;
-  state.parties.forEach(p => { totalOutstanding += Number(p.outstandingBalance || 0); });
+  // Total Outstanding balance = Purchases - Paid
+  const totalOutstanding = totalPurchased - totalPaid;
   
-  // Pending Invoices = Active unpaid bills
+  // Find pending invoices where the due date has passed
+  const now = new Date();
   const pendingCount = state.bills.filter(b => {
-    const p = state.parties.find(x => x.id === b.partyId);
-    return p && p.outstandingBalance > 0 && new Date(b.dueDate) < new Date();
+    const isOverdue = new Date(b.dueDate) < now;
+    return isOverdue;
   }).length;
 
   DOM.dashTotalParties.innerText = totalParties;
-  DOM.dashTotalBills.innerText = formatCurrency(totalBilled);
+  DOM.dashTotalBills.innerText = formatCurrency(totalPurchased);
   DOM.dashTotalOutstanding.innerText = formatCurrency(totalOutstanding);
   DOM.dashTotalPayments.innerText = formatCurrency(totalPaid);
   DOM.dashPendingCount.innerText = pendingCount;
   
-  // Timeline UI rendering (Last 5 actions)
   const timelineHTML = [];
   const recents = state.activities.slice(0, 5);
   if (recents.length === 0) {
     timelineHTML.push(`<li class="text-muted small">No modifications tracked yet.</li>`);
   } else {
     recents.forEach(act => {
-      const timeStr = act.timestamp ? formatDate(act.timestamp.toDate()) : "Just now";
+      const timeStr = act.localStamp ? formatDate(act.localStamp) : "Just now";
       timelineHTML.push(`
         <li class="timeline-item">
           <div class="timeline-marker"></div>
@@ -394,7 +436,6 @@ function renderDashboardUI() {
   DOM.dashTimelineList.innerHTML = timelineHTML.join("");
 }
 
-// --- VIEW WRITER: PARTIES ---
 function renderPartiesUI(filterText = "") {
   let list = state.parties;
   if (filterText) {
@@ -407,13 +448,15 @@ function renderPartiesUI(filterText = "") {
   
   const html = [];
   if (list.length === 0) {
-    html.push(`<tr><td colspan="7" class="text-center text-muted">No party structures match the filters.</td></tr>`);
+    html.push(`<tr><td colspan="7" class="text-center text-muted">No vendor profiles match selection criteria.</td></tr>`);
   } else {
     list.forEach(p => {
+      // Outstanding balance is total purchases minus total paid
+      const outstandingVal = (p.totalBills || 0) - (p.totalPayments || 0);
       html.push(`
         <tr>
           <td>
-            <a href="#" onclick="viewPartyDetails('${p.id}')" class="fw-bold text-decoration-none" style="color: var(--freskey-color-3);">
+            <a href="#" onclick="viewPartyDetails('${p.id}'); return false;" class="fw-bold text-decoration-none" style="color: var(--freskey-color-3);">
               ${escapeHTML(p.name)}
             </a>
           </td>
@@ -421,7 +464,7 @@ function renderPartiesUI(filterText = "") {
           <td>${escapeHTML(p.mobile)}</td>
           <td class="text-end fw-medium">${formatCurrency(p.totalBills || 0)}</td>
           <td class="text-end fw-medium text-success">${formatCurrency(p.totalPayments || 0)}</td>
-          <td class="text-end fw-bold text-danger">${formatCurrency(p.outstandingBalance || 0)}</td>
+          <td class="text-end fw-bold text-danger">${formatCurrency(outstandingVal)}</td>
           <td class="text-center">
             <div class="btn-group btn-group-sm">
               <button class="btn btn-outline-dark" onclick="editParty('${p.id}')" title="Edit Properties"><i class="bi bi-pencil-square"></i></button>
@@ -435,11 +478,6 @@ function renderPartiesUI(filterText = "") {
   DOM.partiesTbody.innerHTML = html.join("");
 }
 
-DOM.partySearch.addEventListener("input", (e) => {
-  renderPartiesUI(e.target.value.trim());
-});
-
-// --- VIEW WRITER: BILLS ---
 function renderBillsUI(filterText = "") {
   let list = state.bills;
   if (filterText) {
@@ -451,7 +489,7 @@ function renderBillsUI(filterText = "") {
   
   const html = [];
   if (list.length === 0) {
-    html.push(`<tr><td colspan="6" class="text-center text-muted">No billing records found.</td></tr>`);
+    html.push(`<tr><td colspan="6" class="text-center text-muted">No purchases records logged.</td></tr>`);
   } else {
     list.forEach(b => {
       html.push(`
@@ -474,11 +512,6 @@ function renderBillsUI(filterText = "") {
   DOM.billsTbody.innerHTML = html.join("");
 }
 
-DOM.billSearch.addEventListener("input", (e) => {
-  renderBillsUI(e.target.value.trim());
-});
-
-// --- VIEW WRITER: PAYMENTS ---
 function renderPaymentsUI(filterText = "") {
   let list = state.payments;
   if (filterText) {
@@ -490,7 +523,7 @@ function renderPaymentsUI(filterText = "") {
   
   const html = [];
   if (list.length === 0) {
-    html.push(`<tr><td colspan="5" class="text-center text-muted">No payments match queries.</td></tr>`);
+    html.push(`<tr><td colspan="5" class="text-center text-muted">No payments logged yet.</td></tr>`);
   } else {
     list.forEach(p => {
       html.push(`
@@ -500,7 +533,7 @@ function renderPaymentsUI(filterText = "") {
           <td><span class="badge bg-secondary">${escapeHTML(p.mode)}</span></td>
           <td class="text-end fw-bold text-success">${formatCurrency(p.amount)}</td>
           <td class="text-center">
-            <button class="btn btn-outline-danger btn-sm" onclick="deletePayment('${p.id}')" title="Delete Payment Ledger Log"><i class="bi bi-trash3"></i></button>
+            <button class="btn btn-outline-danger btn-sm" onclick="deletePayment('${p.id}')" title="Delete Payment Record"><i class="bi bi-trash3"></i></button>
           </td>
         </tr>
       `);
@@ -509,18 +542,13 @@ function renderPaymentsUI(filterText = "") {
   DOM.paymentsTbody.innerHTML = html.join("");
 }
 
-DOM.paymentSearch.addEventListener("input", (e) => {
-  renderPaymentsUI(e.target.value.trim());
-});
-
-// --- VIEW WRITER: SYSTEM ACTIVITIES ---
 function renderActivitiesUI() {
   const html = [];
   if (state.activities.length === 0) {
-    html.push(`<tr><td colspan="4" class="text-center text-muted">History cache empty.</td></tr>`);
+    html.push(`<tr><td colspan="4" class="text-center text-muted">History log empty.</td></tr>`);
   } else {
     state.activities.forEach(act => {
-      const stamp = act.timestamp ? formatDate(act.timestamp.toDate()) : "Processing";
+      const stamp = act.localStamp ? formatDate(act.localStamp) : "Processing";
       html.push(`
         <tr>
           <td><small class="text-muted fw-bold">${stamp}</small></td>
@@ -535,12 +563,12 @@ function renderActivitiesUI() {
 }
 
 // ==========================================
-// BUSINESS LOGIC: PARTY TRANSACTIONS CRUD
+// CRUD OPERATIONS: VENDOR/PARTY SUBMISSIONS
 // ==========================================
 function openPartyModal() {
   document.getElementById("party-form-id").value = "";
   DOM.partyForm.reset();
-  document.getElementById("modal-party-title").innerText = "Create Vendor Party";
+  document.getElementById("modal-party-title").innerText = "Create Vendor Profile";
   state.instances.partyModal.show();
 }
 
@@ -555,11 +583,11 @@ function editParty(id) {
   document.getElementById("party-form-address").value = party.address || "";
   document.getElementById("party-form-notes").value = party.notes || "";
   
-  document.getElementById("modal-party-title").innerText = "Edit Corporate Party: " + party.name;
+  document.getElementById("modal-party-title").innerText = "Edit Vendor Profile: " + party.name;
   state.instances.partyModal.show();
 }
 
-DOM.partyForm.addEventListener("submit", (e) => {
+function handlePartySubmit(e) {
   e.preventDefault();
   const id = document.getElementById("party-form-id").value;
   const name = document.getElementById("party-form-name").value.trim();
@@ -572,104 +600,130 @@ DOM.partyForm.addEventListener("submit", (e) => {
   
   const payload = {
     name, mobile, gst, address, notes,
-    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    updatedAt: new Date().toISOString()
   };
   
-  if (id) {
-    // Update Record inside Firestore
-    db.collection("parties").doc(id).update(payload)
-      .then(() => {
-        toggleLoader(false);
-        state.instances.partyModal.hide();
-        
-        // Audit log action
-        recordActivity("Updated Party Details", `Modified properties of party vendor: "${name}"`);
-        
-        // Update operational memory block
-        const index = state.parties.findIndex(p => p.id === id);
-        if (index !== -1) state.parties[index] = { ...state.parties[index], ...payload };
-        
-        showNotification(`Vendor updated: ${name}`, "success");
-        updateLocalStateAndSync();
-      }).catch(err => {
-        toggleLoader(false);
-        showNotification(err.message, "error");
-      });
-  } else {
-    // New Record configuration defaults
-    payload.totalBills = 0;
-    payload.totalPayments = 0;
-    payload.outstandingBalance = 0;
-    payload.isDeleted = false;
-    payload.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+  if (isSandboxMode) {
+    const list = LocalStorageEngine.get("parties");
+    if (id) {
+      const idx = list.findIndex(p => p.id === id);
+      if (idx !== -1) {
+        list[idx] = { ...list[idx], ...payload };
+        state.parties[idx] = list[idx];
+      }
+      recordActivity("Updated Vendor Profile", `Modified properties of vendor: "${name}"`);
+      showNotification(`Vendor updated: ${name}`, "success");
+    } else {
+      payload.id = 'p_' + Math.random().toString(36).substr(2, 9);
+      payload.totalBills = 0;
+      payload.totalPayments = 0;
+      payload.isDeleted = false;
+      payload.createdAt = new Date().toISOString();
+      
+      list.push(payload);
+      state.parties.push(payload);
+      recordActivity("Created Vendor", `Registered new vendor: "${name}"`);
+      showNotification(`Vendor registered: ${name}`, "success");
+    }
     
-    db.collection("parties").add(payload)
-      .then((docRef) => {
-        toggleLoader(false);
+    LocalStorageEngine.save("parties", list);
+    toggleLoader(false);
+    state.instances.partyModal.hide();
+    syncGlobalState();
+  } else {
+    // Cloud Firestore Operations
+    const dbRef = db.collection("parties");
+    if (id) {
+      dbRef.doc(id).update({
+        ...payload,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }).then(() => {
+        const idx = state.parties.findIndex(p => p.id === id);
+        if (idx !== -1) state.parties[idx] = { ...state.parties[idx], ...payload };
+        recordActivity("Updated Vendor Profile", `Modified properties of vendor: "${name}"`);
+        showNotification(`Vendor updated: ${name}`, "success");
         state.instances.partyModal.hide();
-        
-        recordActivity("Created Party", `Registered new vendor entity: "${name}"`);
-        
-        payload.id = docRef.id;
-        state.parties.push(payload);
-        
-        showNotification(`New Vendor Registered: ${name}`, "success");
-        updateLocalStateAndSync();
-      }).catch(err => {
-        toggleLoader(false);
-        showNotification(err.message, "error");
-      });
+        syncGlobalState();
+      }).catch(err => showNotification(err.message, "error"))
+        .finally(() => toggleLoader(false));
+    } else {
+      const completePayload = {
+        ...payload,
+        totalBills: 0,
+        totalPayments: 0,
+        isDeleted: false,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      };
+      dbRef.add(completePayload).then(docRef => {
+        completePayload.id = docRef.id;
+        state.parties.push(completePayload);
+        recordActivity("Created Vendor", `Registered new vendor: "${name}"`);
+        showNotification(`Vendor registered: ${name}`, "success");
+        state.instances.partyModal.hide();
+        syncGlobalState();
+      }).catch(err => showNotification(err.message, "error"))
+        .finally(() => toggleLoader(false));
+    }
   }
-});
+}
 
 function deleteParty(id) {
   const party = state.parties.find(p => p.id === id);
   if (!party) return;
   
-  if (confirm(`Are you absolutely sure you want to delete "${party.name}"? Active balances will be hidden.`)) {
+  if (confirm(`Delete the vendor profile "${party.name}"? Historical records will be archived.`)) {
     toggleLoader(true);
-    db.collection("parties").doc(id).update({ isDeleted: true })
-      .then(() => {
-        toggleLoader(false);
-        recordActivity("Deleted Party", `Soft deleted party vendor: "${party.name}"`);
-        
+    if (isSandboxMode) {
+      const list = LocalStorageEngine.get("parties");
+      const idx = list.findIndex(p => p.id === id);
+      if (idx !== -1) {
+        list[idx].isDeleted = true;
         state.parties = state.parties.filter(p => p.id !== id);
-        showNotification(`Vendor "${party.name}" removed.`, "info");
-        updateLocalStateAndSync();
-      }).catch(err => {
-        toggleLoader(false);
-        showNotification(err.message, "error");
-      });
+      }
+      LocalStorageEngine.save("parties", list);
+      recordActivity("Deleted Vendor Profile", `Archived profile details for: "${party.name}"`);
+      showNotification("Vendor profile archived.", "info");
+      toggleLoader(false);
+      syncGlobalState();
+    } else {
+      db.collection("parties").doc(id).update({ isDeleted: true })
+        .then(() => {
+          state.parties = state.parties.filter(p => p.id !== id);
+          recordActivity("Deleted Vendor Profile", `Archived profile details for: "${party.name}"`);
+          showNotification("Vendor profile archived.", "info");
+          syncGlobalState();
+        }).catch(err => showNotification(err.message, "error"))
+          .finally(() => toggleLoader(false));
+    }
   }
 }
 
-// VIEW DETAILED PARTY MODAL OVERVIEW
 function viewPartyDetails(partyId) {
   const party = state.parties.find(p => p.id === partyId);
   if (!party) return;
   
-  document.getElementById("party-detail-title").innerText = `Detailed Profile: ${party.name}`;
+  document.getElementById("party-detail-title").innerText = `Vendor Details: ${party.name}`;
   document.getElementById("party-detail-mobile").innerText = party.mobile || "--";
   document.getElementById("party-detail-gst").innerText = party.gst || "--";
   document.getElementById("party-detail-address").innerText = party.address || "--";
   
+  const oVal = (party.totalBills || 0) - (party.totalPayments || 0);
   document.getElementById("party-detail-total-bills").innerText = formatCurrency(party.totalBills || 0);
   document.getElementById("party-detail-total-payments").innerText = formatCurrency(party.totalPayments || 0);
-  document.getElementById("party-detail-outstanding").innerText = formatCurrency(party.outstandingBalance || 0);
+  document.getElementById("party-detail-outstanding").innerText = formatCurrency(oVal);
   
-  // Filter active transactions
   const activeBills = state.bills.filter(b => b.partyId === partyId);
   const activePayments = state.payments.filter(p => p.partyId === partyId);
   
   const txList = [];
-  activeBills.forEach(b => txList.push({ date: b.billDate, type: `Invoice Purchase (#${b.billNumber})`, db: b.totalAmount, cr: 0 }));
-  activePayments.forEach(p => txList.push({ date: p.paymentDate, type: `Cash remitted via (${p.mode})`, db: 0, cr: p.amount }));
+  activeBills.forEach(b => txList.push({ date: b.billDate, type: `Invoice Bill (#${b.billNumber})`, db: b.totalAmount, cr: 0 }));
+  activePayments.forEach(p => txList.push({ date: p.paymentDate, type: `Payment Settled (${p.mode})`, db: 0, cr: p.amount }));
   
-  // Sort date descending
   txList.sort((a,b) => new Date(b.date) - new Date(a.date));
   
   const tbodyHTML = [];
-  txList.slice(0, 5).forEach(tx => {
+  txList.slice(0, 10).forEach(tx => {
     tbodyHTML.push(`
       <tr>
         <td>${formatDateString(tx.date)}</td>
@@ -681,7 +735,7 @@ function viewPartyDetails(partyId) {
   });
   
   if (txList.length === 0) {
-    tbodyHTML.push(`<tr><td colspan="4" class="text-center text-muted small">No transactions on record for this client.</td></tr>`);
+    tbodyHTML.push(`<tr><td colspan="4" class="text-center text-muted small">No recent account statements logged.</td></tr>`);
   }
   
   document.getElementById("party-detail-transactions-tbody").innerHTML = tbodyHTML.join("");
@@ -689,13 +743,13 @@ function viewPartyDetails(partyId) {
 }
 
 // ==========================================
-// BUSINESS LOGIC: BILLS & DYNAMIC ROW CALCULATOR
+// CRUD OPERATIONS: BILLS SUBMISSIONS & CALCS
 // ==========================================
 function createItemRow(name = "", qty = 1, rate = 0) {
   const rowId = 'row_' + Math.random().toString(36).substr(2, 9);
   const rowHTML = `
     <tr class="item-calc-row" id="${rowId}">
-      <td><input type="text" class="form-control form-control-sm item-name-field" value="${escapeHTML(name)}" placeholder="Item Particulars Description" required></td>
+      <td><input type="text" class="form-control form-control-sm item-name-field" value="${escapeHTML(name)}" placeholder="Item/Product description" required></td>
       <td><input type="number" min="1" class="form-control form-control-sm item-qty-field" value="${qty}" required></td>
       <td><input type="number" min="0" step="0.01" class="form-control form-control-sm item-rate-field" value="${rate}" required></td>
       <td><input type="number" class="form-control form-control-sm item-total-field bg-light border-0 fw-bold" value="${(qty * rate).toFixed(2)}" readonly></td>
@@ -723,20 +777,19 @@ function attachRowListeners() {
     const rateInput = row.querySelector(".item-rate-field");
     const totalInput = row.querySelector(".item-total-field");
     
-    // Cleanup old events to prevent memory leaks
-    qtyInput.oninput = null;
-    rateInput.oninput = null;
-    
-    // Bind real-time recalculations
-    const calculate = () => {
+    qtyInput.oninput = () => {
       const q = parseFloat(qtyInput.value) || 0;
       const r = parseFloat(rateInput.value) || 0;
       totalInput.value = (q * r).toFixed(2);
       recomputeGrandTotals();
     };
     
-    qtyInput.oninput = calculate;
-    rateInput.oninput = calculate;
+    rateInput.oninput = () => {
+      const q = parseFloat(qtyInput.value) || 0;
+      const r = parseFloat(rateInput.value) || 0;
+      totalInput.value = (q * r).toFixed(2);
+      recomputeGrandTotals();
+    };
   });
 }
 
@@ -748,20 +801,16 @@ function recomputeGrandTotals() {
   DOM.billItemsGrandTotal.innerText = formatCurrency(subtotal);
 }
 
-DOM.btnAddItemRow.addEventListener("click", () => createItemRow("", 1, 0));
-
 function openBillModal() {
   document.getElementById("bill-form-id").value = "";
   DOM.billForm.reset();
   DOM.billItemsTbody.innerHTML = "";
   
-  // Set default current system date
   document.getElementById("bill-form-date").value = new Date().toISOString().substring(0, 10);
   document.getElementById("bill-form-due-date").value = new Date(Date.now() + 15 * 86400000).toISOString().substring(0, 10);
   
-  // Always initialize bill modal creation with 1 base entry line
   createItemRow("", 1, 0);
-  document.getElementById("modal-bill-title").innerText = "Create Vendor Purchase Invoice";
+  document.getElementById("modal-bill-title").innerText = "Add Vendor Invoice (Bill)";
   state.instances.billModal.show();
 }
 
@@ -789,7 +838,7 @@ function editBill(id) {
   state.instances.billModal.show();
 }
 
-DOM.billForm.addEventListener("submit", async (e) => {
+function handleBillSubmit(e) {
   e.preventDefault();
   
   const id = document.getElementById("bill-form-id").value;
@@ -800,11 +849,10 @@ DOM.billForm.addEventListener("submit", async (e) => {
   
   const party = state.parties.find(p => p.id === partyId);
   if (!party) {
-    showNotification("Associated vendor context not valid.", "error");
+    showNotification("Vendor context error.", "error");
     return;
   }
   
-  // Extract parsed array structures of items
   const items = [];
   let rowValidationError = false;
   
@@ -818,143 +866,187 @@ DOM.billForm.addEventListener("submit", async (e) => {
   });
   
   if (rowValidationError) {
-    showNotification("Please provide names for all rows.", "error");
+    showNotification("Product names must not be empty.", "error");
     return;
   }
   
   const totalAmount = items.reduce((acc, current) => acc + current.amount, 0);
-  
   toggleLoader(true);
   
   const payload = {
     billNumber, partyId, partyName: party.name,
     billDate, dueDate, items, totalAmount,
-    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    updatedAt: new Date().toISOString()
   };
   
-  try {
-    const dbRef = db.collection("bills");
+  if (isSandboxMode) {
+    const billList = LocalStorageEngine.get("bills");
+    const partyList = LocalStorageEngine.get("parties");
+    const pIdx = partyList.findIndex(p => p.id === partyId);
     
     if (id) {
-      // Logic adjustment calculations: Need to extract the net-difference impact to apply accurately
+      const oldBillIdx = billList.findIndex(b => b.id === id);
+      const oldBill = billList[oldBillIdx];
+      const diffTotal = totalAmount - oldBill.totalAmount;
+      
+      billList[oldBillIdx] = { ...oldBill, ...payload };
+      state.bills[oldBillIdx] = billList[oldBillIdx];
+      
+      if (pIdx !== -1) {
+        partyList[pIdx].totalBills = Number(partyList[pIdx].totalBills || 0) + diffTotal;
+        state.parties[pIdx].totalBills = partyList[pIdx].totalBills;
+      }
+      recordActivity("Modified Invoice Details", `Updated Bill #${billNumber} for vendor: "${party.name}". Net change: ${formatCurrency(diffTotal)}`);
+      showNotification(`Invoice #${billNumber} updated.`, "success");
+    } else {
+      payload.id = 'b_' + Math.random().toString(36).substr(2, 9);
+      payload.isDeleted = false;
+      payload.createdAt = new Date().toISOString();
+      
+      billList.push(payload);
+      state.bills.push(payload);
+      
+      if (pIdx !== -1) {
+        partyList[pIdx].totalBills = Number(partyList[pIdx].totalBills || 0) + totalAmount;
+        state.parties[pIdx].totalBills = partyList[pIdx].totalBills;
+      }
+      recordActivity("Created Invoice Record", `Recorded purchase Bill #${billNumber} from vendor: "${party.name}". Total: ${formatCurrency(totalAmount)}`);
+      showNotification(`Invoice #${billNumber} saved successfully.`, "success");
+    }
+    
+    LocalStorageEngine.save("bills", billList);
+    LocalStorageEngine.save("parties", partyList);
+    
+    toggleLoader(false);
+    state.instances.billModal.hide();
+    syncGlobalState();
+  } else {
+    // Cloud Firestore transactions pipeline
+    const dbRef = db.collection("bills");
+    if (id) {
       const oldBill = state.bills.find(b => b.id === id);
       const diffTotal = totalAmount - oldBill.totalAmount;
       
-      // Update Firestore invoice
-      await dbRef.doc(id).update(payload);
-      
-      // Update associated party totals
-      const updatedBalance = Number(party.outstandingBalance || 0) + diffTotal;
-      const updatedBillsSum = Number(party.totalBills || 0) + diffTotal;
-      
-      await db.collection("parties").doc(partyId).update({
-        totalBills: updatedBillsSum,
-        outstandingBalance: updatedBalance
-      });
-      
-      // Sync memory storage state
-      const partyIdx = state.parties.findIndex(p => p.id === partyId);
-      if (partyIdx !== -1) {
-        state.parties[partyIdx].totalBills = updatedBillsSum;
-        state.parties[partyIdx].outstandingBalance = updatedBalance;
-      }
-      
-      const idx = state.bills.findIndex(b => b.id === id);
-      if (idx !== -1) state.bills[idx] = { ...state.bills[idx], ...payload };
-      
-      recordActivity("Modified Invoice Details", `Updated Bill #${billNumber} for vendor: "${party.name}". Net Change: ${formatCurrency(diffTotal)}`);
-      showNotification(`Invoice #${billNumber} updated.`, "success");
-      
+      dbRef.doc(id).update({
+        ...payload,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }).then(async () => {
+        const uBillsSum = Number(party.totalBills || 0) + diffTotal;
+        
+        await db.collection("parties").doc(partyId).update({
+          totalBills: uBillsSum
+        });
+        
+        const partyIdx = state.parties.findIndex(p => p.id === partyId);
+        if (partyIdx !== -1) {
+          state.parties[partyIdx].totalBills = uBillsSum;
+        }
+        
+        const idx = state.bills.findIndex(b => b.id === id);
+        if (idx !== -1) state.bills[idx] = { ...state.bills[idx], ...payload };
+        
+        recordActivity("Modified Invoice Details", `Updated Bill #${billNumber} for vendor: "${party.name}". Net change: ${formatCurrency(diffTotal)}`);
+        showNotification(`Invoice #${billNumber} updated.`, "success");
+        state.instances.billModal.hide();
+        syncGlobalState();
+      }).catch(err => showNotification(err.message, "error"))
+        .finally(() => toggleLoader(false));
     } else {
-      payload.isDeleted = false;
-      payload.createdAt = firebase.firestore.FieldValue.serverTimestamp();
-      
-      // Create Firestore Invoice
-      const doc = await dbRef.add(payload);
-      payload.id = doc.id;
-      
-      // Update aggregate counts of the Vendor
-      const updatedBalance = Number(party.outstandingBalance || 0) + totalAmount;
-      const updatedBillsSum = Number(party.totalBills || 0) + totalAmount;
-      
-      await db.collection("parties").doc(partyId).update({
-        totalBills: updatedBillsSum,
-        outstandingBalance: updatedBalance
-      });
-      
-      // Sync memory state
-      const partyIdx = state.parties.findIndex(p => p.id === partyId);
-      if (partyIdx !== -1) {
-        state.parties[partyIdx].totalBills = updatedBillsSum;
-        state.parties[partyIdx].outstandingBalance = updatedBalance;
-      }
-      
-      state.bills.push(payload);
-      
-      recordActivity("Created Invoice Record", `Created Bill #${billNumber} for vendor "${party.name}". Total Valued: ${formatCurrency(totalAmount)}`);
-      showNotification(`Invoice #${billNumber} recorded.`, "success");
+      const completePayload = {
+        ...payload,
+        isDeleted: false,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      };
+      dbRef.add(completePayload).then(async docRef => {
+        completePayload.id = docRef.id;
+        state.bills.push(completePayload);
+        
+        const uBillsSum = Number(party.totalBills || 0) + totalAmount;
+        await db.collection("parties").doc(partyId).update({
+          totalBills: uBillsSum
+        });
+        
+        const partyIdx = state.parties.findIndex(p => p.id === partyId);
+        if (partyIdx !== -1) {
+          state.parties[partyIdx].totalBills = uBillsSum;
+        }
+        
+        recordActivity("Created Invoice Record", `Recorded purchase Bill #${billNumber} from vendor: "${party.name}". Total: ${formatCurrency(totalAmount)}`);
+        showNotification(`Invoice #${billNumber} saved successfully.`, "success");
+        state.instances.billModal.hide();
+        syncGlobalState();
+      }).catch(err => showNotification(err.message, "error"))
+        .finally(() => toggleLoader(false));
     }
-    
-    state.instances.billModal.hide();
-    updateLocalStateAndSync();
-    
-  } catch (error) {
-    showNotification("Transaction error encountered: " + error.message, "error");
-  } finally {
-    toggleLoader(false);
   }
-});
+}
 
 function deleteBill(id) {
   const bill = state.bills.find(b => b.id === id);
   if (!bill) return;
   
-  if (confirm(`Are you sure you want to delete Invoice #${bill.billNumber}?`)) {
+  if (confirm(`Remove Bill #${bill.billNumber} from system archives?`)) {
     toggleLoader(true);
-    
-    db.collection("bills").doc(id).update({ isDeleted: true })
-      .then(async () => {
-        const party = state.parties.find(p => p.id === bill.partyId);
-        if (party) {
-          const updatedBalance = Number(party.outstandingBalance || 0) - bill.totalAmount;
-          const updatedBillsSum = Number(party.totalBills || 0) - bill.totalAmount;
-          
-          await db.collection("parties").doc(bill.partyId).update({
-            totalBills: updatedBillsSum,
-            outstandingBalance: updatedBalance
-          });
-          
-          const partyIdx = state.parties.findIndex(p => p.id === bill.partyId);
-          if (partyIdx !== -1) {
-            state.parties[partyIdx].totalBills = updatedBillsSum;
-            state.parties[partyIdx].outstandingBalance = updatedBalance;
-          }
-        }
-        
-        recordActivity("Deleted Invoice Receipt", `Removed Bill #${bill.billNumber} values. Deducted ${formatCurrency(bill.totalAmount)} liability.`);
+    if (isSandboxMode) {
+      const billList = LocalStorageEngine.get("bills");
+      const partyList = LocalStorageEngine.get("parties");
+      
+      const bIdx = billList.findIndex(b => b.id === id);
+      if (bIdx !== -1) {
+        billList[bIdx].isDeleted = true;
         state.bills = state.bills.filter(b => b.id !== id);
-        showNotification("Invoice deleted.", "info");
-        updateLocalStateAndSync();
-      })
-      .catch(err => {
-        showNotification(err.message, "error");
-      })
-      .finally(() => toggleLoader(false));
+      }
+      
+      const pIdx = partyList.findIndex(p => p.id === bill.partyId);
+      if (pIdx !== -1) {
+        partyList[pIdx].totalBills = Math.max(0, Number(partyList[pIdx].totalBills || 0) - bill.totalAmount);
+        state.parties[pIdx].totalBills = partyList[pIdx].totalBills;
+      }
+      
+      LocalStorageEngine.save("bills", billList);
+      LocalStorageEngine.save("parties", partyList);
+      
+      recordActivity("Deleted Purchase Invoice", `Removed Bill #${bill.billNumber}. Deducted ${formatCurrency(bill.totalAmount)} liability.`);
+      showNotification("Invoice removed.", "info");
+      toggleLoader(false);
+      syncGlobalState();
+    } else {
+      db.collection("bills").doc(id).update({ isDeleted: true })
+        .then(async () => {
+          const party = state.parties.find(p => p.id === bill.partyId);
+          if (party) {
+            const uBillsSum = Math.max(0, Number(party.totalBills || 0) - bill.totalAmount);
+            await db.collection("parties").doc(bill.partyId).update({
+              totalBills: uBillsSum
+            });
+            const partyIdx = state.parties.findIndex(p => p.id === bill.partyId);
+            if (partyIdx !== -1) {
+              state.parties[partyIdx].totalBills = uBillsSum;
+            }
+          }
+          state.bills = state.bills.filter(b => b.id !== id);
+          recordActivity("Deleted Purchase Invoice", `Removed Bill #${bill.billNumber}. Deducted ${formatCurrency(bill.totalAmount)} liability.`);
+          showNotification("Invoice removed.", "info");
+          syncGlobalState();
+        }).catch(err => showNotification(err.message, "error"))
+          .finally(() => toggleLoader(false));
+    }
   }
 }
 
 // ==========================================
-// BUSINESS LOGIC: PAYMENT TRANSACTIONS CRUD
+// CRUD OPERATIONS: PAYMENTS SUBMISSIONS
 // ==========================================
 function openPaymentModal() {
   document.getElementById("payment-form-id").value = "";
   DOM.paymentForm.reset();
   document.getElementById("payment-form-date").value = new Date().toISOString().substring(0, 10);
-  document.getElementById("modal-payment-title").innerText = "Record Payment";
+  document.getElementById("modal-payment-title").innerText = "Record Remitted Payment";
   state.instances.paymentModal.show();
 }
 
-DOM.paymentForm.addEventListener("submit", async (e) => {
+function handlePaymentSubmit(e) {
   e.preventDefault();
   
   const partyId = document.getElementById("payment-form-party-id").value;
@@ -964,109 +1056,141 @@ DOM.paymentForm.addEventListener("submit", async (e) => {
   
   const party = state.parties.find(p => p.id === partyId);
   if (!party) {
-    showNotification("A valid vendor is required to register payment logs.", "error");
+    showNotification("Vendor context error.", "error");
     return;
   }
   
   toggleLoader(true);
-  
   const payload = {
     partyId, partyName: party.name,
     paymentDate, amount, mode,
     isDeleted: false,
-    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    createdAt: new Date().toISOString()
   };
   
-  try {
-    const doc = await db.collection("payments").add(payload);
-    payload.id = doc.id;
+  if (isSandboxMode) {
+    const payList = LocalStorageEngine.get("payments");
+    const partyList = LocalStorageEngine.get("parties");
+    const pIdx = partyList.findIndex(p => p.id === partyId);
     
-    // Update structural balance records on Party Vendor collection
-    const updatedBalance = Number(party.outstandingBalance || 0) - amount;
-    const updatedPaymentsSum = Number(party.totalPayments || 0) + amount;
-    
-    await db.collection("parties").doc(partyId).update({
-      totalPayments: updatedPaymentsSum,
-      outstandingBalance: updatedBalance
-    });
-    
-    const partyIdx = state.parties.findIndex(p => p.id === partyId);
-    if (partyIdx !== -1) {
-      state.parties[partyIdx].totalPayments = updatedPaymentsSum;
-      state.parties[partyIdx].outstandingBalance = updatedBalance;
-    }
-    
+    payload.id = 'pay_' + Math.random().toString(36).substr(2, 9);
+    payList.push(payload);
     state.payments.push(payload);
     
-    recordActivity("Logged Cash Disbursement", `Logged ${formatCurrency(amount)} payment via ${mode} to party vendor "${party.name}"`);
-    showNotification(`Payment of ${formatCurrency(amount)} logged.`, "success");
-    state.instances.paymentModal.hide();
-    updateLocalStateAndSync();
+    if (pIdx !== -1) {
+      partyList[pIdx].totalPayments = Number(partyList[pIdx].totalPayments || 0) + amount;
+      state.parties[pIdx].totalPayments = partyList[pIdx].totalPayments;
+    }
     
-  } catch (err) {
-    showNotification(err.message, "error");
-  } finally {
+    LocalStorageEngine.save("payments", payList);
+    LocalStorageEngine.save("parties", partyList);
+    
+    recordActivity("Logged Cash Disbursement", `Disbursed ${formatCurrency(amount)} payment via ${mode} to vendor "${party.name}"`);
+    showNotification(`Payment of ${formatCurrency(amount)} recorded.`, "success");
     toggleLoader(false);
+    state.instances.paymentModal.hide();
+    syncGlobalState();
+  } else {
+    // Cloud Firestore Operations
+    const completePayload = {
+      ...payload,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    db.collection("payments").add(completePayload).then(async docRef => {
+      completePayload.id = docRef.id;
+      state.payments.push(completePayload);
+      
+      const uPaymentsSum = Number(party.totalPayments || 0) + amount;
+      await db.collection("parties").doc(partyId).update({
+        totalPayments: uPaymentsSum
+      });
+      
+      const partyIdx = state.parties.findIndex(p => p.id === partyId);
+      if (partyIdx !== -1) {
+        state.parties[partyIdx].totalPayments = uPaymentsSum;
+      }
+      
+      recordActivity("Logged Cash Disbursement", `Disbursed ${formatCurrency(amount)} payment via ${mode} to vendor "${party.name}"`);
+      showNotification(`Payment of ${formatCurrency(amount)} recorded.`, "success");
+      state.instances.paymentModal.hide();
+      syncGlobalState();
+    }).catch(err => showNotification(err.message, "error"))
+      .finally(() => toggleLoader(false));
   }
-});
+}
 
 function deletePayment(id) {
   const payment = state.payments.find(p => p.id === id);
   if (!payment) return;
   
-  if (confirm(`Reverse this payment entry? Warning: This will increase the vendor's outstanding balance.`)) {
+  if (confirm(`Reverse payment of ${formatCurrency(payment.amount)} to "${payment.partyName}"? Outstanding dues will be updated.`)) {
     toggleLoader(true);
-    
-    db.collection("payments").doc(id).update({ isDeleted: true })
-      .then(async () => {
-        const party = state.parties.find(p => p.id === payment.partyId);
-        if (party) {
-          const updatedBalance = Number(party.outstandingBalance || 0) + payment.amount;
-          const updatedPaymentsSum = Number(party.totalPayments || 0) - payment.amount;
-          
-          await db.collection("parties").doc(payment.partyId).update({
-            totalPayments: updatedPaymentsSum,
-            outstandingBalance: updatedBalance
-          });
-          
-          const partyIdx = state.parties.findIndex(p => p.id === payment.partyId);
-          if (partyIdx !== -1) {
-            state.parties[partyIdx].totalPayments = updatedPaymentsSum;
-            state.parties[partyIdx].outstandingBalance = updatedBalance;
-          }
-        }
-        
-        recordActivity("Reversed Remittance Record", `Voided payment transaction of ${formatCurrency(payment.amount)} to vendor "${payment.partyName}"`);
+    if (isSandboxMode) {
+      const payList = LocalStorageEngine.get("payments");
+      const partyList = LocalStorageEngine.get("parties");
+      
+      const pyIdx = payList.findIndex(p => p.id === id);
+      if (pyIdx !== -1) {
+        payList[pyIdx].isDeleted = true;
         state.payments = state.payments.filter(p => p.id !== id);
-        showNotification("Payment entry reversed.", "info");
-        updateLocalStateAndSync();
-      })
-      .catch(err => {
-        showNotification(err.message, "error");
-      })
-      .finally(() => toggleLoader(false));
+      }
+      
+      const pIdx = partyList.findIndex(p => p.id === payment.partyId);
+      if (pIdx !== -1) {
+        partyList[pIdx].totalPayments = Math.max(0, Number(partyList[pIdx].totalPayments || 0) - payment.amount);
+        state.parties[pIdx].totalPayments = partyList[pIdx].totalPayments;
+      }
+      
+      LocalStorageEngine.save("payments", payList);
+      LocalStorageEngine.save("parties", partyList);
+      
+      recordActivity("Reversed Remittance Record", `Voided payment of ${formatCurrency(payment.amount)} to vendor "${payment.partyName}"`);
+      showNotification("Payment entry reversed.", "info");
+      toggleLoader(false);
+      syncGlobalState();
+    } else {
+      db.collection("payments").doc(id).update({ isDeleted: true })
+        .then(async () => {
+          const party = state.parties.find(p => p.id === payment.partyId);
+          if (party) {
+            const uPaymentsSum = Math.max(0, Number(party.totalPayments || 0) - payment.amount);
+            await db.collection("parties").doc(payment.partyId).update({
+              totalPayments: uPaymentsSum
+            });
+            const partyIdx = state.parties.findIndex(p => p.id === payment.partyId);
+            if (partyIdx !== -1) {
+              state.parties[partyIdx].totalPayments = uPaymentsSum;
+            }
+          }
+          state.payments = state.payments.filter(p => p.id !== id);
+          recordActivity("Reversed Remittance Record", `Voided payment of ${formatCurrency(payment.amount)} to vendor "${payment.partyName}"`);
+          showNotification("Payment entry reversed.", "info");
+          syncGlobalState();
+        }).catch(err => showNotification(err.message, "error"))
+          .finally(() => toggleLoader(false));
+    }
   }
 }
 
 // ==========================================
-// BUSINESS LOGIC: ACCOUNTING ENGINE LEDGER
+// ACCOUNT STATEMENT LEDGER GENERATION
 // ==========================================
-DOM.btnGenerateLedger.addEventListener("click", () => {
+function generateLedgerAudit() {
   const partyId = DOM.ledgerPartySelect.value;
   if (!partyId) {
-    showNotification("Select a party vendor.", "info");
+    showNotification("Please select a vendor party.", "info");
     return;
   }
   
   const party = state.parties.find(p => p.id === partyId);
   if (!party) return;
   
-  // Combine related debits and credits
   const partyBills = state.bills.filter(b => b.partyId === partyId);
   const partyPayments = state.payments.filter(p => p.partyId === partyId);
   
   const journal = [];
   
+  // Debit: Vendor Bills (What we purchased, increasing liability/due)
   partyBills.forEach(b => {
     journal.push({
       date: b.billDate,
@@ -1076,19 +1200,19 @@ DOM.btnGenerateLedger.addEventListener("click", () => {
     });
   });
   
+  // Credit: Payments Made (What we paid, reducing liability/due)
   partyPayments.forEach(p => {
     journal.push({
       date: p.paymentDate,
-      desc: `Payment Disbursed via ${p.mode}`,
+      desc: `Payment Settled via ${p.mode}`,
       debit: 0,
       credit: p.amount
     });
   });
   
-  // Sort journal chronologically
+  // Sort chronological order
   journal.sort((a,b) => new Date(a.date) - new Date(b.date));
   
-  // Generate statement data rows
   let balance = 0;
   const tbodyHTML = [];
   
@@ -1106,27 +1230,22 @@ DOM.btnGenerateLedger.addEventListener("click", () => {
   });
   
   if (journal.length === 0) {
-    tbodyHTML.push(`<tr><td colspan="5" class="text-center text-muted">No journal records matching active criteria.</td></tr>`);
+    tbodyHTML.push(`<tr><td colspan="5" class="text-center text-muted">No journal transactions on record.</td></tr>`);
     DOM.btnPrintLedger.disabled = true;
   } else {
     DOM.btnPrintLedger.disabled = false;
   }
   
-  // Update Print Layout elements
   DOM.ledgerGenDate.innerText = new Date().toLocaleString();
   DOM.ledgerCompName.innerText = party.name.toUpperCase();
-  DOM.ledgerCompInfo.innerText = `Contact Details: ${party.mobile} | GSTIN No: ${party.gst || 'N/A'}`;
+  DOM.ledgerCompInfo.innerText = `Mobile: ${party.mobile} | GSTIN Reference: ${party.gst || 'N/A'}`;
   
   DOM.ledgerTbody.innerHTML = tbodyHTML.join("");
   document.getElementById("print-area").classList.remove("d-none");
-});
-
-DOM.btnPrintLedger.addEventListener("click", () => {
-  window.print();
-});
+}
 
 // ==========================================
-// FORMATTING & SECURITY ESCAPING UTILITIES
+// STRING ESCAPE & UTILITIES
 // ==========================================
 function formatCurrency(num) {
   return "₹" + parseFloat(num).toLocaleString('en-IN', {
@@ -1157,3 +1276,18 @@ function escapeHTML(str) {
     tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
   );
 }
+
+// ==========================================
+// EXPOSE GLOBAL ATTRIBUTES FOR DOM BINDINGS
+// ==========================================
+window.switchView = switchView;
+window.openPartyModal = openPartyModal;
+window.editParty = editParty;
+window.deleteParty = deleteParty;
+window.viewPartyDetails = viewPartyDetails;
+window.openBillModal = openBillModal;
+window.editBill = editBill;
+window.deleteBill = deleteBill;
+window.removeItemRow = removeItemRow;
+window.openPaymentModal = openPaymentModal;
+window.deletePayment = deletePayment;
