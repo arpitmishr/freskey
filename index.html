@@ -2,17 +2,17 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Vendor & Billing Ledger System</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Freskey - Vendor & Billing Ledger System</title>
   
   <!-- Bootstrap 5 CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <!-- Bootstrap Icons -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
-  <!-- Google Fonts (Roboto for clean Material typography) -->
+  <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
   
-  <!-- Custom CSS for Material Design layout -->
+  <!-- Custom CSS for Responsive Design and Bottom Nav -->
   <style>
     :root {
       --primary-blue: #1a73e8;
@@ -22,6 +22,8 @@
       --dark-text: #202124;
       --light-bg: #f8f9fa;
       --sidebar-width: 260px;
+      --nav-active-green: #d4fc79; /* Custom soft green/yellow pill from reference */
+      --nav-dark-bg: #1e1e24;       /* Pill bar background */
     }
 
     body {
@@ -31,7 +33,7 @@
       overflow-x: hidden;
     }
 
-    /* Scrollbars styling */
+    /* Scrollbars */
     ::-webkit-scrollbar {
       width: 6px;
       height: 6px;
@@ -44,7 +46,7 @@
       border-radius: 4px;
     }
 
-    /* Auth Screen styling */
+    /* Auth Screen */
     #auth-screen {
       min-height: 100vh;
       display: flex;
@@ -68,7 +70,7 @@
       min-height: 100vh;
     }
 
-    /* Sidebar Navigation */
+    /* Desktop Sidebar */
     #sidebar {
       width: var(--sidebar-width);
       background-color: #ffffff;
@@ -174,7 +176,7 @@
       font-size: 1.5rem;
     }
 
-    /* Floating action buttons & inputs styling */
+    /* Floating action buttons & inputs */
     .btn-primary {
       background-color: var(--primary-blue);
       border-color: var(--primary-blue);
@@ -184,7 +186,7 @@
       border-color: #1557b0;
     }
 
-    /* Timeline styling (Recent Activity UI) */
+    /* Activity Timeline */
     .timeline {
       position: relative;
       padding-left: 2rem;
@@ -218,24 +220,80 @@
       box-shadow: 0 0 0 2px var(--primary-blue);
     }
 
-    /* Soft Responsive Styling */
+    /* Minimal Pill-Shaped Floating Bottom Navigation Bar for Mobile */
+    .mobile-bottom-nav {
+      position: fixed;
+      bottom: calc(15px + env(safe-area-inset-bottom));
+      left: 15px;
+      right: 15px;
+      height: 60px;
+      background-color: var(--nav-dark-bg);
+      border-radius: 50px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+      z-index: 1040;
+      display: none; /* Desktop hidden */
+      align-items: center;
+      justify-content: space-around;
+      padding: 0 10px;
+    }
+
+    .mobile-nav-item {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #9ea0a5;
+      text-decoration: none;
+      font-weight: 500;
+      border-radius: 40px;
+      padding: 10px 16px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      cursor: pointer;
+    }
+
+    .mobile-nav-item i {
+      font-size: 1.35rem;
+      display: flex;
+      align-items: center;
+    }
+
+    .mobile-nav-label {
+      font-size: 0.85rem;
+      display: none;
+      margin-left: 8px;
+    }
+
+    /* Active Mobile Nav State: Styled exactly like reference image */
+    .mobile-nav-item.active {
+      background-color: var(--nav-active-green);
+      color: #121214;
+    }
+
+    .mobile-nav-item.active .mobile-nav-label {
+      display: inline;
+    }
+
+    /* Responsive Adjustments for Mobile and iPhones */
     @media (max-width: 991.98px) {
       #sidebar {
-        transform: translateX(-100%);
-      }
-      #sidebar.active {
-        transform: translateX(0);
+        display: none !important;
       }
       #topbar {
         left: 0;
+        padding: 0 1.25rem;
       }
       #main-content {
         margin-left: 0;
         width: 100%;
+        padding: 1.25rem;
+        /* Extra padding so bottom floating navigation doesn't overlap view contents */
+        padding-bottom: calc(90px + env(safe-area-inset-bottom));
+      }
+      .mobile-bottom-nav {
+        display: flex; /* Display only on tablet/mobile views */
       }
     }
 
-    /* Print utility styling for Vendor Ledger */
+    /* Print utility styling for Ledger */
     @media print {
       body * {
         visibility: hidden;
@@ -265,7 +323,7 @@
   <div id="auth-screen">
     <div class="auth-card">
       <div class="text-center mb-4">
-        <h4 class="fw-bold text-primary mb-1"><i class="bi bi-wallet2 me-2"></i>LedgerBook</h4>
+        <h4 class="fw-bold text-primary mb-1"><i class="bi bi-wallet2 me-2"></i>Freskey</h4>
         <p class="text-muted small">Arpit & Daksh Management Suite</p>
       </div>
       <form id="login-form">
@@ -288,11 +346,11 @@
   <!-- MAIN APPLICATION LAYOUT -->
   <div id="app-container" class="d-none">
     
-    <!-- SIDEBAR -->
+    <!-- DESKTOP SIDEBAR (Auto-hides on mobile) -->
     <aside id="sidebar">
       <div class="sidebar-brand">
         <i class="bi bi-wallet2 text-primary"></i>
-        <span>LedgerBook</span>
+        <span>Freskey</span>
       </div>
       <ul class="sidebar-menu">
         <li class="sidebar-item active" data-view="dashboard">
@@ -319,15 +377,40 @@
       </div>
     </aside>
 
+    <!-- FLOATING BOTTOM NAVIGATION (Only visible on Mobile / iPhones) -->
+    <nav class="mobile-bottom-nav">
+      <div class="mobile-nav-item active" data-view="dashboard">
+        <i class="bi bi-house-door"></i>
+        <span class="mobile-nav-label">Home</span>
+      </div>
+      <div class="mobile-nav-item" data-view="parties">
+        <i class="bi bi-people"></i>
+        <span class="mobile-nav-label">Parties</span>
+      </div>
+      <div class="mobile-nav-item" data-view="bills">
+        <i class="bi bi-receipt"></i>
+        <span class="mobile-nav-label">Bills</span>
+      </div>
+      <div class="mobile-nav-item" data-view="payments">
+        <i class="bi bi-cash-stack"></i>
+        <span class="mobile-nav-label">Payments</span>
+      </div>
+      <div class="mobile-nav-item" data-view="ledger">
+        <i class="bi bi-journal-text"></i>
+        <span class="mobile-nav-label">Ledger</span>
+      </div>
+    </nav>
+
     <!-- TOP BAR -->
     <header id="topbar">
       <div class="d-flex align-items-center">
-        <button class="btn d-lg-none me-2" id="sidebar-toggle" aria-label="Toggle Sidebar">
-          <i class="bi bi-list fs-4"></i>
-        </button>
         <span class="fs-5 fw-bold" id="current-page-title">Dashboard</span>
       </div>
-      <div class="d-flex align-items-center gap-3">
+      <div class="d-flex align-items-center gap-2 gap-sm-3">
+        <!-- Quick System Access Link on Mobile Topbar since Activity History was omitted from Bottom Navigation tabs -->
+        <button class="btn btn-sm btn-outline-secondary d-lg-none" onclick="switchView('activity')" title="System Log">
+          <i class="bi bi-clock-history"></i>
+        </button>
         <span class="badge bg-light text-dark py-2 px-3 border" id="user-display-badge">
           <i class="bi bi-person-circle text-primary me-2"></i><span id="nav-user-name">Loading...</span>
         </span>
@@ -342,7 +425,7 @@
       
       <!-- VIEW: DASHBOARD -->
       <section id="view-dashboard" class="view-panel">
-        <div class="row g-4 mb-5">
+        <div class="row g-3 g-sm-4 mb-4">
           <div class="col-12 col-sm-6 col-lg-4">
             <div class="dashboard-card d-flex align-items-center justify-content-between">
               <div>
@@ -357,7 +440,7 @@
           <div class="col-12 col-sm-6 col-lg-4">
             <div class="dashboard-card d-flex align-items-center justify-content-between">
               <div>
-                <h6 class="text-muted text-uppercase mb-1 small fw-bold">Total Invoiced (Bills)</h6>
+                <h6 class="text-muted text-uppercase mb-1 small fw-bold">Total Invoiced</h6>
                 <h3 class="fw-bold mb-0" id="dash-total-bills">₹0.00</h3>
               </div>
               <div class="card-icon bg-warning bg-opacity-10 text-warning">
@@ -368,7 +451,7 @@
           <div class="col-12 col-sm-6 col-lg-4">
             <div class="dashboard-card d-flex align-items-center justify-content-between">
               <div>
-                <h6 class="text-muted text-uppercase mb-1 small fw-bold">Outstanding Receivables</h6>
+                <h6 class="text-muted text-uppercase mb-1 small fw-bold">Outstanding Due</h6>
                 <h3 class="fw-bold mb-0 text-danger" id="dash-total-outstanding">₹0.00</h3>
               </div>
               <div class="card-icon bg-danger bg-opacity-10 text-danger">
@@ -379,7 +462,7 @@
           <div class="col-12 col-sm-6 col-lg-4">
             <div class="dashboard-card d-flex align-items-center justify-content-between">
               <div>
-                <h6 class="text-muted text-uppercase mb-1 small fw-bold">Total Payments Processed</h6>
+                <h6 class="text-muted text-uppercase mb-1 small fw-bold">Total Payments</h6>
                 <h3 class="fw-bold mb-0 text-success" id="dash-total-payments">₹0.00</h3>
               </div>
               <div class="card-icon bg-success bg-opacity-10 text-success">
@@ -425,9 +508,9 @@
 
       <!-- VIEW: PARTIES -->
       <section id="view-parties" class="view-panel d-none">
-        <div class="card border-0 shadow-sm rounded-3 bg-white p-4">
-          <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-4">
-            <div class="input-group search-bar" style="max-width: 360px;">
+        <div class="card border-0 shadow-sm rounded-3 bg-white p-3 p-sm-4">
+          <div class="d-flex flex-column flex-sm-row justify-content-between align-items-stretch align-items-sm-center gap-3 mb-4">
+            <div class="input-group search-bar" style="max-width: 100%;">
               <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
               <input type="text" class="form-control border-start-0" id="party-search-input" placeholder="Search party details...">
             </div>
@@ -445,7 +528,7 @@
                   <th>Mobile Number</th>
                   <th class="text-end">Total Bills (₹)</th>
                   <th class="text-end">Total Paid (₹)</th>
-                  <th class="text-end">Outstanding Balance (₹)</th>
+                  <th class="text-end">Outstanding (₹)</th>
                   <th class="text-center">Action Options</th>
                 </tr>
               </thead>
@@ -459,9 +542,9 @@
 
       <!-- VIEW: BILLS -->
       <section id="view-bills" class="view-panel d-none">
-        <div class="card border-0 shadow-sm rounded-3 bg-white p-4">
-          <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-4">
-            <div class="input-group search-bar" style="max-width: 360px;">
+        <div class="card border-0 shadow-sm rounded-3 bg-white p-3 p-sm-4">
+          <div class="d-flex flex-column flex-sm-row justify-content-between align-items-stretch align-items-sm-center gap-3 mb-4">
+            <div class="input-group search-bar" style="max-width: 100%;">
               <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
               <input type="text" class="form-control border-start-0" id="bill-search-input" placeholder="Search bill / party...">
             </div>
@@ -492,14 +575,14 @@
 
       <!-- VIEW: PAYMENTS -->
       <section id="view-payments" class="view-panel d-none">
-        <div class="card border-0 shadow-sm rounded-3 bg-white p-4">
-          <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-4">
-            <div class="input-group search-bar" style="max-width: 360px;">
+        <div class="card border-0 shadow-sm rounded-3 bg-white p-3 p-sm-4">
+          <div class="d-flex flex-column flex-sm-row justify-content-between align-items-stretch align-items-sm-center gap-3 mb-4">
+            <div class="input-group search-bar" style="max-width: 100%;">
               <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
               <input type="text" class="form-control border-start-0" id="payment-search-input" placeholder="Search party or payments...">
             </div>
             <button class="btn btn-primary shadow-sm" onclick="openPaymentModal()">
-              <i class="bi bi-currency-rupee me-2"></i>Record Party Payment
+              <i class="bi bi-currency-rupee me-2"></i>Record Payment
             </button>
           </div>
 
@@ -510,7 +593,7 @@
                   <th>Payment Date</th>
                   <th>Party Name</th>
                   <th>Payment Mode</th>
-                  <th class="text-end">Amount Cleared (₹)</th>
+                  <th class="text-end">Amount Paid (₹)</th>
                   <th class="text-center">Action Options</th>
                 </tr>
               </thead>
@@ -524,7 +607,7 @@
 
       <!-- VIEW: LEDGER -->
       <section id="view-ledger" class="view-panel d-none">
-        <div class="card border-0 shadow-sm rounded-3 bg-white p-4 mb-4">
+        <div class="card border-0 shadow-sm rounded-3 bg-white p-3 p-sm-4 mb-4">
           <div class="row align-items-end g-3">
             <div class="col-12 col-md-6">
               <label for="ledger-party-select" class="form-label fw-bold">Select Party Vendor</label>
@@ -543,13 +626,13 @@
           </div>
         </div>
 
-        <div id="print-area" class="card border-0 shadow-sm rounded-3 bg-white p-4 d-none">
-          <div class="d-flex justify-content-between align-items-start border-bottom pb-4 mb-4">
+        <div id="print-area" class="card border-0 shadow-sm rounded-3 bg-white p-3 p-sm-4 d-none">
+          <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start border-bottom pb-4 mb-4 gap-3">
             <div>
               <h2 class="fw-bold text-primary mb-1">VENDOR ACCOUNT LEDGER</h2>
               <p class="text-muted mb-0 small">Generated automatically on: <span id="ledger-generation-date">--</span></p>
             </div>
-            <div class="text-end">
+            <div class="text-start text-sm-end">
               <h5 class="fw-bold mb-1" id="ledger-company-name">--</h5>
               <p class="text-muted mb-0 small" id="ledger-company-info">--</p>
             </div>
@@ -578,10 +661,10 @@
 
       <!-- VIEW: ACTIVITY HISTORY -->
       <section id="view-activity" class="view-panel d-none">
-        <div class="card border-0 shadow-sm rounded-3 bg-white p-4">
+        <div class="card border-0 shadow-sm rounded-3 bg-white p-3 p-sm-4">
           <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-4">
-            <h5 class="mb-0 fw-bold">Complete System Audited Activities</h5>
-            <span class="badge bg-primary px-3 py-2">Security Auditable Events (Read Only)</span>
+            <h5 class="mb-0 fw-bold">System Activities Logs</h5>
+            <span class="badge bg-primary px-3 py-2">Security Auditable (Read Only)</span>
           </div>
           <div class="table-responsive">
             <table class="table table-hover align-middle">
@@ -604,7 +687,7 @@
   </div>
 
   <!-- TOAST NOTIFICATION CONTAINER -->
-  <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1055;">
+  <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1055; margin-bottom: 75px;">
     <div id="app-toast" class="toast align-items-center border-0 shadow-lg" role="alert" aria-live="assertive" aria-atomic="true">
       <div class="d-flex">
         <div class="toast-body d-flex align-items-center gap-2" id="toast-text-content">
@@ -719,17 +802,17 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <form id="bill-form">
-          <div class="modal-body p-4">
+          <div class="modal-body p-3 p-sm-4">
             <input type="hidden" id="bill-form-id">
             
             <div class="row g-3 mb-4">
-              <div class="col-12 col-md-3">
+              <div class="col-12 col-sm-6 col-md-3">
                 <div class="form-floating">
                   <input type="text" class="form-control" id="bill-form-number" placeholder="Bill No" required>
                   <label for="bill-form-number">Invoice Number (#)</label>
                 </div>
               </div>
-              <div class="col-12 col-md-3">
+              <div class="col-12 col-sm-6 col-md-3">
                 <div class="form-floating">
                   <select class="form-select" id="bill-form-party-id" required>
                     <!-- Dynamically Loaded -->
@@ -737,13 +820,13 @@
                   <label for="bill-form-party-id">Select Vendor Party</label>
                 </div>
               </div>
-              <div class="col-12 col-md-3">
+              <div class="col-12 col-sm-6 col-md-3">
                 <div class="form-floating">
                   <input type="date" class="form-control" id="bill-form-date" required>
                   <label for="bill-form-date">Bill Date</label>
                 </div>
               </div>
-              <div class="col-12 col-md-3">
+              <div class="col-12 col-sm-6 col-md-3">
                 <div class="form-floating">
                   <input type="date" class="form-control" id="bill-form-due-date" required>
                   <label for="bill-form-due-date">Due Date</label>
@@ -753,15 +836,15 @@
 
             <h6 class="fw-bold border-bottom pb-2 mb-3">Purchased Items Breakdown</h6>
             
-            <div class="table-responsive">
-              <table class="table table-bordered align-middle" id="bill-items-table">
+            <div class="table-responsive mb-3">
+              <table class="table table-bordered align-middle" id="bill-items-table" style="min-width: 600px;">
                 <thead class="table-light">
                   <tr>
                     <th>Particulars Name / Description</th>
-                    <th style="width: 120px;">Qty</th>
-                    <th style="width: 160px;">Rate (₹)</th>
-                    <th style="width: 180px;">Amount (₹)</th>
-                    <th style="width: 60px;"></th>
+                    <th style="width: 100px;">Qty</th>
+                    <th style="width: 140px;">Rate (₹)</th>
+                    <th style="width: 160px;">Amount (₹)</th>
+                    <th style="width: 50px;"></th>
                   </tr>
                 </thead>
                 <tbody id="bill-items-tbody">
@@ -770,13 +853,13 @@
               </table>
             </div>
 
-            <div class="d-flex justify-content-between align-items-center mb-4">
+            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-stretch align-items-sm-center gap-3 mb-4">
               <button type="button" class="btn btn-outline-primary btn-sm" id="btn-add-item-row">
                 <i class="bi bi-plus-circle-fill me-1"></i>Add Item Row
               </button>
-              <div class="text-end" style="min-width: 260px;">
+              <div class="text-end" style="min-width: 200px;">
                 <div class="d-flex justify-content-between border-top pt-2">
-                  <span class="fw-bold">Grand Total Amount:</span>
+                  <span class="fw-bold me-2">Grand Total Amount:</span>
                   <span class="fw-bold text-primary fs-5" id="bill-items-grand-total">₹0.00</span>
                 </div>
               </div>
@@ -840,7 +923,7 @@
     </div>
   </div>
 
-  <!-- FIREBASE SDK COMPAT CDN DEPLOYED FOR SPARK PLAN NO-BUILD EXECUTIONS -->
+  <!-- FIREBASE SDK COMPAT CDN -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
