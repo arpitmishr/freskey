@@ -1,14 +1,17 @@
+// ==========================================
+// FIREBASE CONFIGURATION & INITIALIZATION
+// ==========================================
 const firebaseConfig = {
-  apiKey: "AIzaSyC_Be4ubX04WMKvwbqgzIFr-z0Uy_Kiaw4",
-  authDomain: "freskey-c5489.firebaseapp.com",
-  projectId: "freskey-c5489",
-  storageBucket: "freskey-c5489.firebasestorage.app",
-  messagingSenderId: "378578648103",
-  appId: "1:378578648103:web:17397cd4d282693ea1a202"
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_AUTH_DOMAIN",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_STORAGE_BUCKET",
+  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+  appId: "YOUR_APP_ID"
 };
 
 // Check if we are running in Offline Sandbox Mode (no valid keys found)
-const isSandboxMode = (firebaseConfig.apiKey === "YOUR_API_KEY" || !firebaseConfig.apiKey);
+const isSandboxMode = (firebaseConfig.apiKey === "YOUR_API_KEY" || !firebaseConfig.apiKey || firebaseConfig.apiKey.startsWith("YOUR_"));
 
 let db = null;
 let auth = null;
@@ -47,9 +50,9 @@ const state = {
 };
 
 // ==========================================
-// DOM ELEMENT REF CORES
+// DYNAMIC DOM RETRIEVER (PREVENTS INITIALIZATION NULL REFERENCE ERRORS)
 // ==========================================
-const DOM = {
+const getDOM = () => ({
   authScreen: document.getElementById("auth-screen"),
   appContainer: document.getElementById("app-container"),
   loginForm: document.getElementById("login-form"),
@@ -98,7 +101,7 @@ const DOM = {
   partyForm: document.getElementById("party-form"),
   billForm: document.getElementById("bill-form"),
   paymentForm: document.getElementById("payment-form")
-};
+});
 
 // ==========================================
 // OFFLINE DATABASE STORAGE LAYER WRAPPER
@@ -125,26 +128,29 @@ function showNotification(message, type = "info") {
 }
 
 function toggleLoader(show) {
-  if (show) DOM.loadingSpinner.classList.remove("d-none");
-  else DOM.loadingSpinner.classList.add("d-none");
+  const DOMNode = getDOM();
+  if (show) DOMNode.loadingSpinner.classList.remove("d-none");
+  else DOMNode.loadingSpinner.classList.add("d-none");
 }
 
 // ==========================================
 // SECURE BOOTSTRAPPING ENGINE (LOAD)
 // ==========================================
 document.addEventListener("DOMContentLoaded", () => {
+  const DOMNode = getDOM();
+
   // Bind forms
-  DOM.partyForm.addEventListener("submit", handlePartySubmit);
-  DOM.billForm.addEventListener("submit", handleBillSubmit);
-  DOM.paymentForm.addEventListener("submit", handlePaymentSubmit);
-  DOM.btnAddItemRow.addEventListener("click", () => createItemRow("", 1, 0));
-  DOM.btnGenerateLedger.addEventListener("click", generateLedgerAudit);
-  DOM.btnPrintLedger.addEventListener("click", () => window.print());
+  DOMNode.partyForm.addEventListener("submit", handlePartySubmit);
+  DOMNode.billForm.addEventListener("submit", handleBillSubmit);
+  DOMNode.paymentForm.addEventListener("submit", handlePaymentSubmit);
+  DOMNode.btnAddItemRow.addEventListener("click", () => createItemRow("", 1, 0));
+  DOMNode.btnGenerateLedger.addEventListener("click", generateLedgerAudit);
+  DOMNode.btnPrintLedger.addEventListener("click", () => window.print());
 
   // Bind dynamic real-time searches
-  DOM.partySearch.addEventListener("input", (e) => renderPartiesUI(e.target.value.trim()));
-  DOM.billSearch.addEventListener("input", (e) => renderBillsUI(e.target.value.trim()));
-  DOM.paymentSearch.addEventListener("input", (e) => renderPaymentsUI(e.target.value.trim()));
+  DOMNode.partySearch.addEventListener("input", (e) => renderPartiesUI(e.target.value.trim()));
+  DOMNode.billSearch.addEventListener("input", (e) => renderBillsUI(e.target.value.trim()));
+  DOMNode.paymentSearch.addEventListener("input", (e) => renderPaymentsUI(e.target.value.trim()));
 
   // Bind Auth state configurations
   if (!isSandboxMode && auth) {
@@ -153,10 +159,10 @@ document.addEventListener("DOMContentLoaded", () => {
         state.currentUser = user;
         const email = user.email.toLowerCase();
         state.userName = email.includes("arpit") ? "Arpit" : (email.includes("daksh") ? "Daksh" : user.email.split("@")[0]);
-        DOM.navUserName.innerText = state.userName;
+        DOMNode.navUserName.innerText = state.userName;
         
-        DOM.authScreen.classList.add("d-none");
-        DOM.appContainer.classList.remove("d-none");
+        DOMNode.authScreen.classList.add("d-none");
+        DOMNode.appContainer.classList.remove("d-none");
         
         initializeBootstrapModals();
         bootstrapBackend();
@@ -168,9 +174,9 @@ document.addEventListener("DOMContentLoaded", () => {
     // If running in local Offline mode, mock user and launch directly
     state.currentUser = { email: "local.sandbox@freskey.com" };
     state.userName = "Local Administrator";
-    DOM.navUserName.innerText = state.userName;
-    DOM.authScreen.classList.add("d-none");
-    DOM.appContainer.classList.remove("d-none");
+    DOMNode.navUserName.innerText = state.userName;
+    DOMNode.authScreen.classList.add("d-none");
+    DOMNode.appContainer.classList.remove("d-none");
     
     initializeBootstrapModals();
     bootstrapLocalData();
@@ -178,36 +184,42 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 function initializeBootstrapModals() {
-  state.instances.partyModal = new bootstrap.Modal(document.getElementById("modal-party"));
-  state.instances.billModal = new bootstrap.Modal(document.getElementById("modal-bill"));
-  state.instances.paymentModal = new bootstrap.Modal(document.getElementById("modal-payment"));
-  state.instances.partyDetailModal = new bootstrap.Modal(document.getElementById("modal-party-details"));
+  try {
+    state.instances.partyModal = new bootstrap.Modal(document.getElementById("modal-party"));
+    state.instances.billModal = new bootstrap.Modal(document.getElementById("modal-bill"));
+    state.instances.paymentModal = new bootstrap.Modal(document.getElementById("modal-payment"));
+    state.instances.partyDetailModal = new bootstrap.Modal(document.getElementById("modal-party-details"));
+  } catch (e) {
+    console.error("Error constructing bootstrap modals: ", e);
+  }
 }
 
 function handleSignOutCleanup() {
   state.currentUser = null;
-  DOM.authScreen.classList.remove("d-none");
-  DOM.appContainer.classList.add("d-none");
+  const DOMNode = getDOM();
+  DOMNode.authScreen.classList.remove("d-none");
+  DOMNode.appContainer.classList.add("d-none");
 }
 
 // Handler to capture user login submissions
-DOM.loginForm.addEventListener("submit", (e) => {
+document.getElementById("login-form").addEventListener("submit", (e) => {
   e.preventDefault();
   toggleLoader(true);
-  DOM.loginErrorMsg.classList.add("d-none");
+  const DOMNode = getDOM();
+  DOMNode.loginErrorMsg.classList.add("d-none");
   
-  const email = DOM.loginEmail.value.trim();
-  const password = DOM.loginPassword.value;
+  const email = DOMNode.loginEmail.value.trim();
+  const password = DOMNode.loginPassword.value;
   
   if (isSandboxMode) {
     // offline local bypass accepts all credentials safely to support testing
     state.currentUser = { email: email };
     state.userName = email.toLowerCase().includes("arpit") ? "Arpit" : (email.toLowerCase().includes("daksh") ? "Daksh" : "Offline Admin");
-    DOM.navUserName.innerText = state.userName;
+    DOMNode.navUserName.innerText = state.userName;
     toggleLoader(false);
     
-    DOM.authScreen.classList.add("d-none");
-    DOM.appContainer.classList.remove("d-none");
+    DOMNode.authScreen.classList.add("d-none");
+    DOMNode.appContainer.classList.remove("d-none");
     
     initializeBootstrapModals();
     bootstrapLocalData();
@@ -217,17 +229,17 @@ DOM.loginForm.addEventListener("submit", (e) => {
     auth.signInWithEmailAndPassword(email, password)
       .then(() => {
         toggleLoader(false);
-        DOM.loginForm.reset();
+        DOMNode.loginForm.reset();
       })
       .catch((error) => {
         toggleLoader(false);
-        DOM.loginErrorMsg.innerText = error.message;
-        DOM.loginErrorMsg.classList.remove("d-none");
+        DOMNode.loginErrorMsg.innerText = error.message;
+        DOMNode.loginErrorMsg.classList.remove("d-none");
       });
   }
 });
 
-DOM.btnLogout.addEventListener("click", () => {
+document.getElementById("btn-logout").addEventListener("click", () => {
   toggleLoader(true);
   if (isSandboxMode) {
     toggleLoader(false);
@@ -289,11 +301,12 @@ function syncGlobalState() {
 }
 
 function populateDropdowns() {
+  const DOMNode = getDOM();
   const dropdownHTML = ['<option value="">-- Choose Vendor --</option>'];
   state.parties.forEach(p => {
     dropdownHTML.push(`<option value="${p.id}">${escapeHTML(p.name)}</option>`);
   });
-  DOM.ledgerPartySelect.innerHTML = dropdownHTML.join("");
+  DOMNode.ledgerPartySelect.innerHTML = dropdownHTML.join("");
   document.getElementById("bill-form-party-id").innerHTML = dropdownHTML.join("");
   document.getElementById("payment-form-party-id").innerHTML = dropdownHTML.join("");
 }
@@ -364,7 +377,9 @@ function switchView(targetView) {
     ledger: "Ledger Book Summary",
     activity: "Operational History logs"
   };
-  DOM.currentPageTitle.innerText = textMappings[targetView] || "Freskey";
+  
+  const DOMNode = getDOM();
+  DOMNode.currentPageTitle.innerText = textMappings[targetView] || "Freskey";
   
   renderState(targetView);
 }
@@ -393,6 +408,7 @@ function renderState(view) {
 // VIEW WRITERS (UI RENDERING)
 // ==========================================
 function renderDashboardUI() {
+  const DOMNode = getDOM();
   const totalParties = state.parties.length;
   
   let totalPurchased = 0;
@@ -411,11 +427,11 @@ function renderDashboardUI() {
     return isOverdue;
   }).length;
 
-  DOM.dashTotalParties.innerText = totalParties;
-  DOM.dashTotalBills.innerText = formatCurrency(totalPurchased);
-  DOM.dashTotalOutstanding.innerText = formatCurrency(totalOutstanding);
-  DOM.dashTotalPayments.innerText = formatCurrency(totalPaid);
-  DOM.dashPendingCount.innerText = pendingCount;
+  DOMNode.dashTotalParties.innerText = totalParties;
+  DOMNode.dashTotalBills.innerText = formatCurrency(totalPurchased);
+  DOMNode.dashTotalOutstanding.innerText = formatCurrency(totalOutstanding);
+  DOMNode.dashTotalPayments.innerText = formatCurrency(totalPaid);
+  DOMNode.dashPendingCount.innerText = pendingCount;
   
   const timelineHTML = [];
   const recents = state.activities.slice(0, 5);
@@ -433,7 +449,7 @@ function renderDashboardUI() {
       `);
     });
   }
-  DOM.dashTimelineList.innerHTML = timelineHTML.join("");
+  DOMNode.dashTimelineList.innerHTML = timelineHTML.join("");
 }
 
 function renderPartiesUI(filterText = "") {
@@ -475,7 +491,8 @@ function renderPartiesUI(filterText = "") {
       `);
     });
   }
-  DOM.partiesTbody.innerHTML = html.join("");
+  const DOMNode = getDOM();
+  DOMNode.partiesTbody.innerHTML = html.join("");
 }
 
 function renderBillsUI(filterText = "") {
@@ -509,7 +526,8 @@ function renderBillsUI(filterText = "") {
       `);
     });
   }
-  DOM.billsTbody.innerHTML = html.join("");
+  const DOMNode = getDOM();
+  DOMNode.billsTbody.innerHTML = html.join("");
 }
 
 function renderPaymentsUI(filterText = "") {
@@ -539,7 +557,8 @@ function renderPaymentsUI(filterText = "") {
       `);
     });
   }
-  DOM.paymentsTbody.innerHTML = html.join("");
+  const DOMNode = getDOM();
+  DOMNode.paymentsTbody.innerHTML = html.join("");
 }
 
 function renderActivitiesUI() {
@@ -559,7 +578,8 @@ function renderActivitiesUI() {
       `);
     });
   }
-  DOM.activitiesTbody.innerHTML = html.join("");
+  const DOMNode = getDOM();
+  DOMNode.activitiesTbody.innerHTML = html.join("");
 }
 
 // ==========================================
@@ -567,9 +587,12 @@ function renderActivitiesUI() {
 // ==========================================
 function openPartyModal() {
   document.getElementById("party-form-id").value = "";
-  DOM.partyForm.reset();
+  const DOMNode = getDOM();
+  DOMNode.partyForm.reset();
   document.getElementById("modal-party-title").innerText = "Create Vendor Profile";
-  state.instances.partyModal.show();
+  if (state.instances.partyModal) {
+    state.instances.partyModal.show();
+  }
 }
 
 function editParty(id) {
@@ -584,7 +607,9 @@ function editParty(id) {
   document.getElementById("party-form-notes").value = party.notes || "";
   
   document.getElementById("modal-party-title").innerText = "Edit Vendor Profile: " + party.name;
-  state.instances.partyModal.show();
+  if (state.instances.partyModal) {
+    state.instances.partyModal.show();
+  }
 }
 
 function handlePartySubmit(e) {
@@ -628,7 +653,9 @@ function handlePartySubmit(e) {
     
     LocalStorageEngine.save("parties", list);
     toggleLoader(false);
-    state.instances.partyModal.hide();
+    if (state.instances.partyModal) {
+      state.instances.partyModal.hide();
+    }
     syncGlobalState();
   } else {
     // Cloud Firestore Operations
@@ -642,7 +669,9 @@ function handlePartySubmit(e) {
         if (idx !== -1) state.parties[idx] = { ...state.parties[idx], ...payload };
         recordActivity("Updated Vendor Profile", `Modified properties of vendor: "${name}"`);
         showNotification(`Vendor updated: ${name}`, "success");
-        state.instances.partyModal.hide();
+        if (state.instances.partyModal) {
+          state.instances.partyModal.hide();
+        }
         syncGlobalState();
       }).catch(err => showNotification(err.message, "error"))
         .finally(() => toggleLoader(false));
@@ -660,7 +689,9 @@ function handlePartySubmit(e) {
         state.parties.push(completePayload);
         recordActivity("Created Vendor", `Registered new vendor: "${name}"`);
         showNotification(`Vendor registered: ${name}`, "success");
-        state.instances.partyModal.hide();
+        if (state.instances.partyModal) {
+          state.instances.partyModal.hide();
+        }
         syncGlobalState();
       }).catch(err => showNotification(err.message, "error"))
         .finally(() => toggleLoader(false));
@@ -739,7 +770,9 @@ function viewPartyDetails(partyId) {
   }
   
   document.getElementById("party-detail-transactions-tbody").innerHTML = tbodyHTML.join("");
-  state.instances.partyDetailModal.show();
+  if (state.instances.partyDetailModal) {
+    state.instances.partyDetailModal.show();
+  }
 }
 
 // ==========================================
@@ -759,7 +792,8 @@ function createItemRow(name = "", qty = 1, rate = 0) {
   
   const dNode = document.createElement("tbody");
   dNode.innerHTML = rowHTML;
-  DOM.billItemsTbody.appendChild(dNode.firstElementChild);
+  const DOMNode = getDOM();
+  DOMNode.billItemsTbody.appendChild(dNode.firstElementChild);
   attachRowListeners();
 }
 
@@ -798,20 +832,24 @@ function recomputeGrandTotals() {
   document.querySelectorAll(".item-total-field").forEach(input => {
     subtotal += parseFloat(input.value) || 0;
   });
-  DOM.billItemsGrandTotal.innerText = formatCurrency(subtotal);
+  const DOMNode = getDOM();
+  DOMNode.billItemsGrandTotal.innerText = formatCurrency(subtotal);
 }
 
 function openBillModal() {
   document.getElementById("bill-form-id").value = "";
-  DOM.billForm.reset();
-  DOM.billItemsTbody.innerHTML = "";
+  const DOMNode = getDOM();
+  DOMNode.billForm.reset();
+  DOMNode.billItemsTbody.innerHTML = "";
   
   document.getElementById("bill-form-date").value = new Date().toISOString().substring(0, 10);
   document.getElementById("bill-form-due-date").value = new Date(Date.now() + 15 * 86400000).toISOString().substring(0, 10);
   
   createItemRow("", 1, 0);
   document.getElementById("modal-bill-title").innerText = "Add Vendor Invoice (Bill)";
-  state.instances.billModal.show();
+  if (state.instances.billModal) {
+    state.instances.billModal.show();
+  }
 }
 
 function editBill(id) {
@@ -824,7 +862,8 @@ function editBill(id) {
   document.getElementById("bill-form-date").value = bill.billDate;
   document.getElementById("bill-form-due-date").value = bill.dueDate;
   
-  DOM.billItemsTbody.innerHTML = "";
+  const DOMNode = getDOM();
+  DOMNode.billItemsTbody.innerHTML = "";
   if (bill.items && bill.items.length > 0) {
     bill.items.forEach(it => {
       createItemRow(it.name, it.quantity, it.rate);
@@ -835,7 +874,9 @@ function editBill(id) {
   
   recomputeGrandTotals();
   document.getElementById("modal-bill-title").innerText = `Edit Invoice (#${bill.billNumber})`;
-  state.instances.billModal.show();
+  if (state.instances.billModal) {
+    state.instances.billModal.show();
+  }
 }
 
 function handleBillSubmit(e) {
@@ -918,7 +959,9 @@ function handleBillSubmit(e) {
     LocalStorageEngine.save("parties", partyList);
     
     toggleLoader(false);
-    state.instances.billModal.hide();
+    if (state.instances.billModal) {
+      state.instances.billModal.hide();
+    }
     syncGlobalState();
   } else {
     // Cloud Firestore transactions pipeline
@@ -947,7 +990,9 @@ function handleBillSubmit(e) {
         
         recordActivity("Modified Invoice Details", `Updated Bill #${billNumber} for vendor: "${party.name}". Net change: ${formatCurrency(diffTotal)}`);
         showNotification(`Invoice #${billNumber} updated.`, "success");
-        state.instances.billModal.hide();
+        if (state.instances.billModal) {
+          state.instances.billModal.hide();
+        }
         syncGlobalState();
       }).catch(err => showNotification(err.message, "error"))
         .finally(() => toggleLoader(false));
@@ -974,7 +1019,9 @@ function handleBillSubmit(e) {
         
         recordActivity("Created Invoice Record", `Recorded purchase Bill #${billNumber} from vendor: "${party.name}". Total: ${formatCurrency(totalAmount)}`);
         showNotification(`Invoice #${billNumber} saved successfully.`, "success");
-        state.instances.billModal.hide();
+        if (state.instances.billModal) {
+          state.instances.billModal.hide();
+        }
         syncGlobalState();
       }).catch(err => showNotification(err.message, "error"))
         .finally(() => toggleLoader(false));
@@ -1040,10 +1087,13 @@ function deleteBill(id) {
 // ==========================================
 function openPaymentModal() {
   document.getElementById("payment-form-id").value = "";
-  DOM.paymentForm.reset();
+  const DOMNode = getDOM();
+  DOMNode.paymentForm.reset();
   document.getElementById("payment-form-date").value = new Date().toISOString().substring(0, 10);
   document.getElementById("modal-payment-title").innerText = "Record Remitted Payment";
-  state.instances.paymentModal.show();
+  if (state.instances.paymentModal) {
+    state.instances.paymentModal.show();
+  }
 }
 
 function handlePaymentSubmit(e) {
@@ -1088,7 +1138,9 @@ function handlePaymentSubmit(e) {
     recordActivity("Logged Cash Disbursement", `Disbursed ${formatCurrency(amount)} payment via ${mode} to vendor "${party.name}"`);
     showNotification(`Payment of ${formatCurrency(amount)} recorded.`, "success");
     toggleLoader(false);
-    state.instances.paymentModal.hide();
+    if (state.instances.paymentModal) {
+      state.instances.paymentModal.hide();
+    }
     syncGlobalState();
   } else {
     // Cloud Firestore Operations
@@ -1112,7 +1164,9 @@ function handlePaymentSubmit(e) {
       
       recordActivity("Logged Cash Disbursement", `Disbursed ${formatCurrency(amount)} payment via ${mode} to vendor "${party.name}"`);
       showNotification(`Payment of ${formatCurrency(amount)} recorded.`, "success");
-      state.instances.paymentModal.hide();
+      if (state.instances.paymentModal) {
+        state.instances.paymentModal.hide();
+      }
       syncGlobalState();
     }).catch(err => showNotification(err.message, "error"))
       .finally(() => toggleLoader(false));
@@ -1176,7 +1230,8 @@ function deletePayment(id) {
 // ACCOUNT STATEMENT LEDGER GENERATION
 // ==========================================
 function generateLedgerAudit() {
-  const partyId = DOM.ledgerPartySelect.value;
+  const DOMNode = getDOM();
+  const partyId = DOMNode.ledgerPartySelect.value;
   if (!partyId) {
     showNotification("Please select a vendor party.", "info");
     return;
@@ -1231,16 +1286,16 @@ function generateLedgerAudit() {
   
   if (journal.length === 0) {
     tbodyHTML.push(`<tr><td colspan="5" class="text-center text-muted">No journal transactions on record.</td></tr>`);
-    DOM.btnPrintLedger.disabled = true;
+    DOMNode.btnPrintLedger.disabled = true;
   } else {
-    DOM.btnPrintLedger.disabled = false;
+    DOMNode.btnPrintLedger.disabled = false;
   }
   
-  DOM.ledgerGenDate.innerText = new Date().toLocaleString();
-  DOM.ledgerCompName.innerText = party.name.toUpperCase();
-  DOM.ledgerCompInfo.innerText = `Mobile: ${party.mobile} | GSTIN Reference: ${party.gst || 'N/A'}`;
+  DOMNode.ledgerGenDate.innerText = new Date().toLocaleString();
+  DOMNode.ledgerCompName.innerText = party.name.toUpperCase();
+  DOMNode.ledgerCompInfo.innerText = `Mobile: ${party.mobile} | GSTIN Reference: ${party.gst || 'N/A'}`;
   
-  DOM.ledgerTbody.innerHTML = tbodyHTML.join("");
+  DOMNode.ledgerTbody.innerHTML = tbodyHTML.join("");
   document.getElementById("print-area").classList.remove("d-none");
 }
 
@@ -1278,7 +1333,7 @@ function escapeHTML(str) {
 }
 
 // ==========================================
-// EXPOSE GLOBAL ATTRIBUTES FOR DOM BINDINGS
+// EXPOSE GLOBAL ATTRIBUTES FOR DOM BINDINGS (CRITICAL FOR ONCLICK ACTIONS)
 // ==========================================
 window.switchView = switchView;
 window.openPartyModal = openPartyModal;
