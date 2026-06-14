@@ -64,11 +64,18 @@ const getDOM = () => ({
   currentPageTitle: document.getElementById("current-page-title"),
   loadingSpinner: document.getElementById("loading-spinner"),
   
-  // Dashboard Nodes
-  dashTotalParties: document.getElementById("dash-total-parties"),
-  dashTotalBills: document.getElementById("dash-total-bills"),
-  dashTotalOutstanding: document.getElementById("dash-total-outstanding"),
-  dashTotalPayments: document.getElementById("dash-total-payments"),
+  // Dashboard Nodes - Vendors
+  dashTotalVendors: document.getElementById("dash-total-vendors"),
+  dashTotalPurchases: document.getElementById("dash-total-purchases"),
+  dashTotalPaidVendors: document.getElementById("dash-total-paid-vendors"),
+  dashTotalPayable: document.getElementById("dash-total-payable"),
+  
+  // Dashboard Nodes - Customers
+  dashTotalCustomers: document.getElementById("dash-total-customers"),
+  dashTotalSales: document.getElementById("dash-total-sales"),
+  dashTotalReceivedCustomers: document.getElementById("dash-total-received-customers"),
+  dashTotalReceivable: document.getElementById("dash-total-receivable"),
+  
   dashPendingCount: document.getElementById("dash-pending-count"),
   dashTimelineList: document.getElementById("dash-timeline-list"),
   
@@ -212,7 +219,6 @@ document.getElementById("login-form").addEventListener("submit", (e) => {
   const password = DOMNode.loginPassword.value;
   
   if (isSandboxMode) {
-    // offline local bypass accepts all credentials safely to support testing
     state.currentUser = { email: email };
     state.userName = email.toLowerCase().includes("arpit") ? "Arpit" : (email.toLowerCase().includes("daksh") ? "Daksh" : "Offline Admin");
     DOMNode.navUserName.innerText = state.userName;
@@ -286,7 +292,6 @@ function bootstrapLocalData() {
   state.payments = LocalStorageEngine.get("payments").filter(p => !p.isDeleted);
   state.activities = LocalStorageEngine.get("activities");
   
-  // Re-map activity timestamps
   state.activities = state.activities.map(act => ({
     ...act,
     localStamp: act.timestamp ? new Date(act.timestamp) : new Date()
@@ -302,9 +307,10 @@ function syncGlobalState() {
 
 function populateDropdowns() {
   const DOMNode = getDOM();
-  const dropdownHTML = ['<option value="">-- Choose Vendor --</option>'];
+  const dropdownHTML = ['<option value="">-- Choose Party Profile --</option>'];
   state.parties.forEach(p => {
-    dropdownHTML.push(`<option value="${p.id}">${escapeHTML(p.name)}</option>`);
+    const typeLabel = p.type === 'Customer' ? 'Customer' : 'Vendor';
+    dropdownHTML.push(`<option value="${p.id}">${escapeHTML(p.name)} (${typeLabel})</option>`);
   });
   DOMNode.ledgerPartySelect.innerHTML = dropdownHTML.join("");
   document.getElementById("bill-form-party-id").innerHTML = dropdownHTML.join("");
@@ -325,9 +331,8 @@ function recordActivity(action, description) {
   if (isSandboxMode) {
     const list = LocalStorageEngine.get("activities");
     list.unshift(activityDoc);
-    LocalStorageEngine.save("activities", list.slice(0, 100)); // Maintain log depth
+    LocalStorageEngine.save("activities", list.slice(0, 100));
     
-    // update state locally
     activityDoc.localStamp = new Date();
     state.activities.unshift(activityDoc);
     renderDashboardUI();
@@ -353,7 +358,6 @@ function switchView(targetView) {
     viewElement.classList.remove("d-none");
   }
   
-  // Desktop sidebar adjustments
   document.querySelectorAll(".sidebar-item").forEach(item => {
     item.classList.remove("active");
     if (item.getAttribute("data-view") === targetView) {
@@ -361,7 +365,6 @@ function switchView(targetView) {
     }
   });
 
-  // Mobile navigation bottom bar adjustments
   document.querySelectorAll(".mobile-nav-item").forEach(item => {
     item.classList.remove("active");
     if (item.getAttribute("data-view") === targetView) {
@@ -371,11 +374,11 @@ function switchView(targetView) {
 
   const textMappings = {
     dashboard: "Dashboard",
-    parties: "Vendor Party Profiles",
-    bills: "Bills (Purchases)",
-    payments: "Payments Log",
-    ledger: "Ledger Book Summary",
-    activity: "Operational History logs"
+    parties: "Vendor & Customer Directory",
+    bills: "Invoices / Purchase Bills",
+    payments: "Ledger Payments Cashflow",
+    ledger: "Account Ledger Statements",
+    activity: "Operational History Logs"
   };
   
   const DOMNode = getDOM();
@@ -409,28 +412,52 @@ function renderState(view) {
 // ==========================================
 function renderDashboardUI() {
   const DOMNode = getDOM();
-  const totalParties = state.parties.length;
   
-  let totalPurchased = 0;
-  state.bills.forEach(b => { totalPurchased += Number(b.totalAmount || 0); });
+  // Distribute calculations based on Party Type [1]
+  let vendorsCount = 0;
+  let customersCount = 0;
   
-  let totalPaid = 0;
-  state.payments.forEach(p => { totalPaid += Number(p.amount || 0); });
+  let totalPurchases = 0; // Vendor bills
+  let totalSales = 0;     // Customer bills
   
-  // Total Outstanding balance = Purchases - Paid
-  const totalOutstanding = totalPurchased - totalPaid;
-  
-  // Find pending invoices where the due date has passed
+  let totalPaidVendors = 0;       // Payments we made
+  let totalReceivedCustomers = 0; // Payments they made
+
+  state.parties.forEach(p => {
+    const outstanding = Number(p.totalBills || 0) - Number(p.totalPayments || 0);
+    if (p.type === 'Customer') {
+      customersCount++;
+      totalSales += Number(p.totalBills || 0);
+      totalReceivedCustomers += Number(p.totalPayments || 0);
+    } else {
+      vendorsCount++;
+      totalPurchases += Number(p.totalBills || 0);
+      totalPaidVendors += Number(p.totalPayments || 0);
+    }
+  });
+
+  const outstandingPayable = totalPurchases - totalPaidVendors; // Amount we owe Vendors [1]
+  const outstandingReceivable = totalSales - totalReceivedCustomers; // Amount Customers owe us [1]
+
+  // Count pending overdue bills
   const now = new Date();
   const pendingCount = state.bills.filter(b => {
     const isOverdue = new Date(b.dueDate) < now;
     return isOverdue;
   }).length;
 
-  DOMNode.dashTotalParties.innerText = totalParties;
-  DOMNode.dashTotalBills.innerText = formatCurrency(totalPurchased);
-  DOMNode.dashTotalOutstanding.innerText = formatCurrency(totalOutstanding);
-  DOMNode.dashTotalPayments.innerText = formatCurrency(totalPaid);
+  // Render Vendor Panel Stats
+  DOMNode.dashTotalVendors.innerText = vendorsCount;
+  DOMNode.dashTotalPurchases.innerText = formatCurrency(totalPurchases);
+  DOMNode.dashTotalPaidVendors.innerText = formatCurrency(totalPaidVendors);
+  DOMNode.dashTotalPayable.innerText = formatCurrency(outstandingPayable);
+
+  // Render Customer Panel Stats
+  DOMNode.dashTotalCustomers.innerText = customersCount;
+  DOMNode.dashTotalSales.innerText = formatCurrency(totalSales);
+  DOMNode.dashTotalReceivedCustomers.innerText = formatCurrency(totalReceivedCustomers);
+  DOMNode.dashTotalReceivable.innerText = formatCurrency(outstandingReceivable);
+
   DOMNode.dashPendingCount.innerText = pendingCount;
   
   const timelineHTML = [];
@@ -464,23 +491,34 @@ function renderPartiesUI(filterText = "") {
   
   const html = [];
   if (list.length === 0) {
-    html.push(`<tr><td colspan="7" class="text-center text-muted">No vendor profiles match selection criteria.</td></tr>`);
+    html.push(`<tr><td colspan="8" class="text-center text-muted">No matches in directory search.</td></tr>`);
   } else {
     list.forEach(p => {
-      // Outstanding balance is total purchases minus total paid
       const outstandingVal = (p.totalBills || 0) - (p.totalPayments || 0);
+      const isCustomer = p.type === 'Customer';
+      
+      // Select badge colors based on Vendor vs Customer profiles
+      const typeBadge = isCustomer 
+        ? `<span class="badge text-dark" style="background-color: var(--freskey-color-3);">Customer</span>`
+        : `<span class="badge text-white" style="background-color: var(--freskey-color-5);">Vendor</span>`;
+      
+      const balanceClass = outstandingVal > 0 
+        ? (isCustomer ? 'text-primary' : 'text-danger') 
+        : 'text-success';
+
       html.push(`
         <tr>
           <td>
-            <a href="#" onclick="viewPartyDetails('${p.id}'); return false;" class="fw-bold text-decoration-none" style="color: var(--freskey-color-3);">
+            <a href="#" onclick="viewPartyDetails('${p.id}'); return false;" class="fw-bold text-decoration-none" style="color: var(--freskey-color-2);">
               ${escapeHTML(p.name)}
             </a>
           </td>
+          <td>${typeBadge}</td>
           <td><code>${p.gst ? escapeHTML(p.gst) : '--'}</code></td>
           <td>${escapeHTML(p.mobile)}</td>
           <td class="text-end fw-medium">${formatCurrency(p.totalBills || 0)}</td>
           <td class="text-end fw-medium text-success">${formatCurrency(p.totalPayments || 0)}</td>
-          <td class="text-end fw-bold text-danger">${formatCurrency(outstandingVal)}</td>
+          <td class="text-end fw-bold ${balanceClass}">${formatCurrency(outstandingVal)}</td>
           <td class="text-center">
             <div class="btn-group btn-group-sm">
               <button class="btn btn-outline-dark" onclick="editParty('${p.id}')" title="Edit Properties"><i class="bi bi-pencil-square"></i></button>
@@ -506,20 +544,26 @@ function renderBillsUI(filterText = "") {
   
   const html = [];
   if (list.length === 0) {
-    html.push(`<tr><td colspan="6" class="text-center text-muted">No purchases records logged.</td></tr>`);
+    html.push(`<tr><td colspan="7" class="text-center text-muted">No purchase/sale records logged.</td></tr>`);
   } else {
     list.forEach(b => {
+      const pType = b.partyType || 'Vendor';
+      const typeBadge = pType === 'Customer'
+        ? `<span class="badge text-dark" style="background-color: var(--freskey-color-3); font-size:0.75rem;">Sales</span>`
+        : `<span class="badge text-white" style="background-color: var(--freskey-color-5); font-size:0.75rem;">Purchase</span>`;
+
       html.push(`
         <tr>
           <td><span class="badge bg-light text-dark border fw-bold">${escapeHTML(b.billNumber)}</span></td>
           <td>${formatDateString(b.billDate)}</td>
           <td>${formatDateString(b.dueDate)}</td>
           <td class="fw-medium">${escapeHTML(b.partyName)}</td>
+          <td>${typeBadge}</td>
           <td class="text-end fw-bold" style="color: var(--freskey-color-3);">${formatCurrency(b.totalAmount)}</td>
           <td class="text-center">
             <div class="btn-group btn-group-sm">
-              <button class="btn btn-outline-dark" onclick="editBill('${b.id}')" title="Edit Bill"><i class="bi bi-pencil"></i></button>
-              <button class="btn btn-outline-danger" onclick="deleteBill('${b.id}')" title="Delete Bill"><i class="bi bi-trash3"></i></button>
+              <button class="btn btn-outline-dark" onclick="editBill('${b.id}')" title="Edit"><i class="bi bi-pencil"></i></button>
+              <button class="btn btn-outline-danger" onclick="deleteBill('${b.id}')" title="Delete"><i class="bi bi-trash3"></i></button>
             </div>
           </td>
         </tr>
@@ -541,17 +585,23 @@ function renderPaymentsUI(filterText = "") {
   
   const html = [];
   if (list.length === 0) {
-    html.push(`<tr><td colspan="5" class="text-center text-muted">No payments logged yet.</td></tr>`);
+    html.push(`<tr><td colspan="6" class="text-center text-muted">No cashflow transactions registered.</td></tr>`);
   } else {
     list.forEach(p => {
+      const pType = p.partyType || 'Vendor';
+      const typeBadge = pType === 'Customer'
+        ? `<span class="badge bg-success-subtle text-success border border-success" style="font-size:0.75rem;">Received</span>`
+        : `<span class="badge bg-danger-subtle text-danger border border-danger" style="font-size:0.75rem;">Paid Out</span>`;
+
       html.push(`
         <tr>
           <td>${formatDateString(p.paymentDate)}</td>
           <td class="fw-bold">${escapeHTML(p.partyName)}</td>
+          <td>${typeBadge}</td>
           <td><span class="badge bg-secondary">${escapeHTML(p.mode)}</span></td>
           <td class="text-end fw-bold text-success">${formatCurrency(p.amount)}</td>
           <td class="text-center">
-            <button class="btn btn-outline-danger btn-sm" onclick="deletePayment('${p.id}')" title="Delete Payment Record"><i class="bi bi-trash3"></i></button>
+            <button class="btn btn-outline-danger btn-sm" onclick="deletePayment('${p.id}')" title="Delete Ledger Entry"><i class="bi bi-trash3"></i></button>
           </td>
         </tr>
       `);
@@ -564,7 +614,7 @@ function renderPaymentsUI(filterText = "") {
 function renderActivitiesUI() {
   const html = [];
   if (state.activities.length === 0) {
-    html.push(`<tr><td colspan="4" class="text-center text-muted">History log empty.</td></tr>`);
+    html.push(`<tr><td colspan="4" class="text-center text-muted">Event log history empty.</td></tr>`);
   } else {
     state.activities.forEach(act => {
       const stamp = act.localStamp ? formatDate(act.localStamp) : "Processing";
@@ -583,13 +633,13 @@ function renderActivitiesUI() {
 }
 
 // ==========================================
-// CRUD OPERATIONS: VENDOR/PARTY SUBMISSIONS
+// CRUD OPERATIONS: VENDOR/CUSTOMER PROFILE SUBMISSIONS
 // ==========================================
 function openPartyModal() {
   document.getElementById("party-form-id").value = "";
   const DOMNode = getDOM();
   DOMNode.partyForm.reset();
-  document.getElementById("modal-party-title").innerText = "Create Vendor Profile";
+  document.getElementById("modal-party-title").innerText = "Create Vendor / Customer Profile";
   if (state.instances.partyModal) {
     state.instances.partyModal.show();
   }
@@ -600,13 +650,14 @@ function editParty(id) {
   if (!party) return;
   
   document.getElementById("party-form-id").value = party.id;
+  document.getElementById("party-form-type").value = party.type || "Vendor";
   document.getElementById("party-form-name").value = party.name;
   document.getElementById("party-form-mobile").value = party.mobile;
   document.getElementById("party-form-gst").value = party.gst || "";
   document.getElementById("party-form-address").value = party.address || "";
   document.getElementById("party-form-notes").value = party.notes || "";
   
-  document.getElementById("modal-party-title").innerText = "Edit Vendor Profile: " + party.name;
+  document.getElementById("modal-party-title").innerText = "Edit Profile: " + party.name;
   if (state.instances.partyModal) {
     state.instances.partyModal.show();
   }
@@ -615,6 +666,7 @@ function editParty(id) {
 function handlePartySubmit(e) {
   e.preventDefault();
   const id = document.getElementById("party-form-id").value;
+  const type = document.getElementById("party-form-type").value;
   const name = document.getElementById("party-form-name").value.trim();
   const mobile = document.getElementById("party-form-mobile").value.trim();
   const gst = document.getElementById("party-form-gst").value.trim();
@@ -624,7 +676,7 @@ function handlePartySubmit(e) {
   toggleLoader(true);
   
   const payload = {
-    name, mobile, gst, address, notes,
+    type, name, mobile, gst, address, notes,
     updatedAt: new Date().toISOString()
   };
   
@@ -636,8 +688,8 @@ function handlePartySubmit(e) {
         list[idx] = { ...list[idx], ...payload };
         state.parties[idx] = list[idx];
       }
-      recordActivity("Updated Vendor Profile", `Modified properties of vendor: "${name}"`);
-      showNotification(`Vendor updated: ${name}`, "success");
+      recordActivity("Updated Profile", `Modified properties of ${type}: "${name}"`);
+      showNotification(`Profile updated: ${name}`, "success");
     } else {
       payload.id = 'p_' + Math.random().toString(36).substr(2, 9);
       payload.totalBills = 0;
@@ -647,8 +699,8 @@ function handlePartySubmit(e) {
       
       list.push(payload);
       state.parties.push(payload);
-      recordActivity("Created Vendor", `Registered new vendor: "${name}"`);
-      showNotification(`Vendor registered: ${name}`, "success");
+      recordActivity("Created Profile", `Registered new ${type}: "${name}"`);
+      showNotification(`Profile registered: ${name}`, "success");
     }
     
     LocalStorageEngine.save("parties", list);
@@ -667,8 +719,8 @@ function handlePartySubmit(e) {
       }).then(() => {
         const idx = state.parties.findIndex(p => p.id === id);
         if (idx !== -1) state.parties[idx] = { ...state.parties[idx], ...payload };
-        recordActivity("Updated Vendor Profile", `Modified properties of vendor: "${name}"`);
-        showNotification(`Vendor updated: ${name}`, "success");
+        recordActivity("Updated Profile", `Modified properties of ${type}: "${name}"`);
+        showNotification(`Profile updated: ${name}`, "success");
         if (state.instances.partyModal) {
           state.instances.partyModal.hide();
         }
@@ -687,8 +739,8 @@ function handlePartySubmit(e) {
       dbRef.add(completePayload).then(docRef => {
         completePayload.id = docRef.id;
         state.parties.push(completePayload);
-        recordActivity("Created Vendor", `Registered new vendor: "${name}"`);
-        showNotification(`Vendor registered: ${name}`, "success");
+        recordActivity("Created Profile", `Registered new ${type}: "${name}"`);
+        showNotification(`Profile registered: ${name}`, "success");
         if (state.instances.partyModal) {
           state.instances.partyModal.hide();
         }
@@ -703,7 +755,7 @@ function deleteParty(id) {
   const party = state.parties.find(p => p.id === id);
   if (!party) return;
   
-  if (confirm(`Delete the vendor profile "${party.name}"? Historical records will be archived.`)) {
+  if (confirm(`Delete the profile "${party.name}"? Historical records will be archived.`)) {
     toggleLoader(true);
     if (isSandboxMode) {
       const list = LocalStorageEngine.get("parties");
@@ -713,16 +765,16 @@ function deleteParty(id) {
         state.parties = state.parties.filter(p => p.id !== id);
       }
       LocalStorageEngine.save("parties", list);
-      recordActivity("Deleted Vendor Profile", `Archived profile details for: "${party.name}"`);
-      showNotification("Vendor profile archived.", "info");
+      recordActivity("Deleted Profile", `Archived profile details for ${party.type || 'Vendor'}: "${party.name}"`);
+      showNotification("Profile archived.", "info");
       toggleLoader(false);
       syncGlobalState();
     } else {
       db.collection("parties").doc(id).update({ isDeleted: true })
         .then(() => {
           state.parties = state.parties.filter(p => p.id !== id);
-          recordActivity("Deleted Vendor Profile", `Archived profile details for: "${party.name}"`);
-          showNotification("Vendor profile archived.", "info");
+          recordActivity("Deleted Profile", `Archived profile details for ${party.type || 'Vendor'}: "${party.name}"`);
+          showNotification("Profile archived.", "info");
           syncGlobalState();
         }).catch(err => showNotification(err.message, "error"))
           .finally(() => toggleLoader(false));
@@ -734,22 +786,42 @@ function viewPartyDetails(partyId) {
   const party = state.parties.find(p => p.id === partyId);
   if (!party) return;
   
-  document.getElementById("party-detail-title").innerText = `Vendor Details: ${party.name}`;
+  const isCustomer = party.type === 'Customer';
+  
+  // Custom Dynamic Terminology mappings
+  document.getElementById("party-detail-title").innerText = `${isCustomer ? 'Customer' : 'Vendor'} Details: ${party.name}`;
   document.getElementById("party-detail-mobile").innerText = party.mobile || "--";
   document.getElementById("party-detail-gst").innerText = party.gst || "--";
   document.getElementById("party-detail-address").innerText = party.address || "--";
   
+  const typeBadgeNode = document.getElementById("party-detail-type-badge");
+  typeBadgeNode.innerText = isCustomer ? 'Customer' : 'Vendor';
+  typeBadgeNode.className = `badge mb-3 fs-6 ${isCustomer ? 'text-dark' : 'text-white'}`;
+  typeBadgeNode.style.backgroundColor = isCustomer ? 'var(--freskey-color-3)' : 'var(--freskey-color-5)';
+  
+  // Dynamically swap panel labels [1]
+  document.getElementById("party-detail-total-billed-label").innerText = isCustomer ? "TOTAL SALES (INVOICES)" : "TOTAL PURCHASES (BILLS)";
+  document.getElementById("party-detail-total-payments-label").innerText = isCustomer ? "TOTAL RECEIVED" : "TOTAL PAID";
+  document.getElementById("party-detail-outstanding-label").innerText = isCustomer ? "DUES LEFT (THEY OWE)" : "OUTSTANDING (WE OWE)";
+
   const oVal = (party.totalBills || 0) - (party.totalPayments || 0);
   document.getElementById("party-detail-total-bills").innerText = formatCurrency(party.totalBills || 0);
   document.getElementById("party-detail-total-payments").innerText = formatCurrency(party.totalPayments || 0);
   document.getElementById("party-detail-outstanding").innerText = formatCurrency(oVal);
   
+  // Custom transaction table list
   const activeBills = state.bills.filter(b => b.partyId === partyId);
   const activePayments = state.payments.filter(p => p.partyId === partyId);
   
   const txList = [];
-  activeBills.forEach(b => txList.push({ date: b.billDate, type: `Invoice Bill (#${b.billNumber})`, db: b.totalAmount, cr: 0 }));
-  activePayments.forEach(p => txList.push({ date: p.paymentDate, type: `Payment Settled (${p.mode})`, db: 0, cr: p.amount }));
+  activeBills.forEach(b => {
+    const actType = isCustomer ? `Sales Invoice (#${b.billNumber})` : `Purchase Bill (#${b.billNumber})`;
+    txList.push({ date: b.billDate, type: actType, db: b.totalAmount, cr: 0 });
+  });
+  activePayments.forEach(p => {
+    const actType = isCustomer ? `Payment Received (${p.mode})` : `Payment Settled (${p.mode})`;
+    txList.push({ date: p.paymentDate, type: actType, db: 0, cr: p.amount });
+  });
   
   txList.sort((a,b) => new Date(b.date) - new Date(a.date));
   
@@ -766,7 +838,7 @@ function viewPartyDetails(partyId) {
   });
   
   if (txList.length === 0) {
-    tbodyHTML.push(`<tr><td colspan="4" class="text-center text-muted small">No recent account statements logged.</td></tr>`);
+    tbodyHTML.push(`<tr><td colspan="4" class="text-center text-muted small">No recent statement records to show.</td></tr>`);
   }
   
   document.getElementById("party-detail-transactions-tbody").innerHTML = tbodyHTML.join("");
@@ -846,7 +918,7 @@ function openBillModal() {
   document.getElementById("bill-form-due-date").value = new Date(Date.now() + 15 * 86400000).toISOString().substring(0, 10);
   
   createItemRow("", 1, 0);
-  document.getElementById("modal-bill-title").innerText = "Add Vendor Invoice (Bill)";
+  document.getElementById("modal-bill-title").innerText = "Add Bill / Invoice Document";
   if (state.instances.billModal) {
     state.instances.billModal.show();
   }
@@ -873,7 +945,7 @@ function editBill(id) {
   }
   
   recomputeGrandTotals();
-  document.getElementById("modal-bill-title").innerText = `Edit Invoice (#${bill.billNumber})`;
+  document.getElementById("modal-bill-title").innerText = `Edit Document (#${bill.billNumber})`;
   if (state.instances.billModal) {
     state.instances.billModal.show();
   }
@@ -890,7 +962,7 @@ function handleBillSubmit(e) {
   
   const party = state.parties.find(p => p.id === partyId);
   if (!party) {
-    showNotification("Vendor context error.", "error");
+    showNotification("Party selection missing.", "error");
     return;
   }
   
@@ -907,18 +979,22 @@ function handleBillSubmit(e) {
   });
   
   if (rowValidationError) {
-    showNotification("Product names must not be empty.", "error");
+    showNotification("Product description labels cannot be empty.", "error");
     return;
   }
   
   const totalAmount = items.reduce((acc, current) => acc + current.amount, 0);
   toggleLoader(true);
   
+  // Track the Party Type in the Invoice Document [1]
   const payload = {
-    billNumber, partyId, partyName: party.name,
+    billNumber, partyId, partyName: party.name, partyType: party.type || 'Vendor',
     billDate, dueDate, items, totalAmount,
     updatedAt: new Date().toISOString()
   };
+  
+  const isCust = party.type === 'Customer';
+  const labelText = isCust ? 'Customer Invoice' : 'Purchase Bill';
   
   if (isSandboxMode) {
     const billList = LocalStorageEngine.get("bills");
@@ -937,8 +1013,8 @@ function handleBillSubmit(e) {
         partyList[pIdx].totalBills = Number(partyList[pIdx].totalBills || 0) + diffTotal;
         state.parties[pIdx].totalBills = partyList[pIdx].totalBills;
       }
-      recordActivity("Modified Invoice Details", `Updated Bill #${billNumber} for vendor: "${party.name}". Net change: ${formatCurrency(diffTotal)}`);
-      showNotification(`Invoice #${billNumber} updated.`, "success");
+      recordActivity("Modified Invoice Details", `Updated ${labelText} #${billNumber} for "${party.name}". Net change: ${formatCurrency(diffTotal)}`);
+      showNotification(`${labelText} #${billNumber} updated.`, "success");
     } else {
       payload.id = 'b_' + Math.random().toString(36).substr(2, 9);
       payload.isDeleted = false;
@@ -951,8 +1027,8 @@ function handleBillSubmit(e) {
         partyList[pIdx].totalBills = Number(partyList[pIdx].totalBills || 0) + totalAmount;
         state.parties[pIdx].totalBills = partyList[pIdx].totalBills;
       }
-      recordActivity("Created Invoice Record", `Recorded purchase Bill #${billNumber} from vendor: "${party.name}". Total: ${formatCurrency(totalAmount)}`);
-      showNotification(`Invoice #${billNumber} saved successfully.`, "success");
+      recordActivity("Created Invoice Record", `Recorded ${labelText} #${billNumber} for "${party.name}". Total: ${formatCurrency(totalAmount)}`);
+      showNotification(`${labelText} #${billNumber} recorded successfully.`, "success");
     }
     
     LocalStorageEngine.save("bills", billList);
@@ -964,7 +1040,7 @@ function handleBillSubmit(e) {
     }
     syncGlobalState();
   } else {
-    // Cloud Firestore transactions pipeline
+    // Cloud Firestore Transactions pipeline
     const dbRef = db.collection("bills");
     if (id) {
       const oldBill = state.bills.find(b => b.id === id);
@@ -988,8 +1064,8 @@ function handleBillSubmit(e) {
         const idx = state.bills.findIndex(b => b.id === id);
         if (idx !== -1) state.bills[idx] = { ...state.bills[idx], ...payload };
         
-        recordActivity("Modified Invoice Details", `Updated Bill #${billNumber} for vendor: "${party.name}". Net change: ${formatCurrency(diffTotal)}`);
-        showNotification(`Invoice #${billNumber} updated.`, "success");
+        recordActivity("Modified Invoice Details", `Updated ${labelText} #${billNumber} for "${party.name}". Net change: ${formatCurrency(diffTotal)}`);
+        showNotification(`${labelText} #${billNumber} updated.`, "success");
         if (state.instances.billModal) {
           state.instances.billModal.hide();
         }
@@ -1017,8 +1093,8 @@ function handleBillSubmit(e) {
           state.parties[partyIdx].totalBills = uBillsSum;
         }
         
-        recordActivity("Created Invoice Record", `Recorded purchase Bill #${billNumber} from vendor: "${party.name}". Total: ${formatCurrency(totalAmount)}`);
-        showNotification(`Invoice #${billNumber} saved successfully.`, "success");
+        recordActivity("Created Invoice Record", `Recorded ${labelText} #${billNumber} for "${party.name}". Total: ${formatCurrency(totalAmount)}`);
+        showNotification(`${labelText} #${billNumber} recorded successfully.`, "success");
         if (state.instances.billModal) {
           state.instances.billModal.hide();
         }
@@ -1033,8 +1109,11 @@ function deleteBill(id) {
   const bill = state.bills.find(b => b.id === id);
   if (!bill) return;
   
-  if (confirm(`Remove Bill #${bill.billNumber} from system archives?`)) {
+  if (confirm(`Remove Bill/Invoice #${bill.billNumber} from archives?`)) {
     toggleLoader(true);
+    const isCust = bill.partyType === 'Customer';
+    const labelText = isCust ? 'Invoice' : 'Bill';
+
     if (isSandboxMode) {
       const billList = LocalStorageEngine.get("bills");
       const partyList = LocalStorageEngine.get("parties");
@@ -1054,8 +1133,8 @@ function deleteBill(id) {
       LocalStorageEngine.save("bills", billList);
       LocalStorageEngine.save("parties", partyList);
       
-      recordActivity("Deleted Purchase Invoice", `Removed Bill #${bill.billNumber}. Deducted ${formatCurrency(bill.totalAmount)} liability.`);
-      showNotification("Invoice removed.", "info");
+      recordActivity(`Deleted ${labelText}`, `Removed ${labelText} #${bill.billNumber} for "${bill.partyName}". Adjusted ${formatCurrency(bill.totalAmount)} balance.`);
+      showNotification(`${labelText} removed.`, "info");
       toggleLoader(false);
       syncGlobalState();
     } else {
@@ -1073,8 +1152,8 @@ function deleteBill(id) {
             }
           }
           state.bills = state.bills.filter(b => b.id !== id);
-          recordActivity("Deleted Purchase Invoice", `Removed Bill #${bill.billNumber}. Deducted ${formatCurrency(bill.totalAmount)} liability.`);
-          showNotification("Invoice removed.", "info");
+          recordActivity(`Deleted ${labelText}`, `Removed ${labelText} #${bill.billNumber} for "${bill.partyName}". Adjusted ${formatCurrency(bill.totalAmount)} balance.`);
+          showNotification(`${labelText} removed.`, "info");
           syncGlobalState();
         }).catch(err => showNotification(err.message, "error"))
           .finally(() => toggleLoader(false));
@@ -1090,7 +1169,7 @@ function openPaymentModal() {
   const DOMNode = getDOM();
   DOMNode.paymentForm.reset();
   document.getElementById("payment-form-date").value = new Date().toISOString().substring(0, 10);
-  document.getElementById("modal-payment-title").innerText = "Record Remitted Payment";
+  document.getElementById("modal-payment-title").innerText = "Record Payment Transaction";
   if (state.instances.paymentModal) {
     state.instances.paymentModal.show();
   }
@@ -1106,17 +1185,22 @@ function handlePaymentSubmit(e) {
   
   const party = state.parties.find(p => p.id === partyId);
   if (!party) {
-    showNotification("Vendor context error.", "error");
+    showNotification("Party identification error.", "error");
     return;
   }
   
   toggleLoader(true);
+  
+  // Track context partyType to identify payments sent vs payments received [1]
   const payload = {
-    partyId, partyName: party.name,
+    partyId, partyName: party.name, partyType: party.type || 'Vendor',
     paymentDate, amount, mode,
     isDeleted: false,
     createdAt: new Date().toISOString()
   };
+  
+  const isCust = party.type === 'Customer';
+  const labelText = isCust ? 'Payment Received' : 'Payment Disbursed';
   
   if (isSandboxMode) {
     const payList = LocalStorageEngine.get("payments");
@@ -1135,8 +1219,8 @@ function handlePaymentSubmit(e) {
     LocalStorageEngine.save("payments", payList);
     LocalStorageEngine.save("parties", partyList);
     
-    recordActivity("Logged Cash Disbursement", `Disbursed ${formatCurrency(amount)} payment via ${mode} to vendor "${party.name}"`);
-    showNotification(`Payment of ${formatCurrency(amount)} recorded.`, "success");
+    recordActivity("Logged Remittance", `${labelText} of ${formatCurrency(amount)} via ${mode} for "${party.name}"`);
+    showNotification(`Payment of ${formatCurrency(amount)} logged.`, "success");
     toggleLoader(false);
     if (state.instances.paymentModal) {
       state.instances.paymentModal.hide();
@@ -1162,8 +1246,8 @@ function handlePaymentSubmit(e) {
         state.parties[partyIdx].totalPayments = uPaymentsSum;
       }
       
-      recordActivity("Logged Cash Disbursement", `Disbursed ${formatCurrency(amount)} payment via ${mode} to vendor "${party.name}"`);
-      showNotification(`Payment of ${formatCurrency(amount)} recorded.`, "success");
+      recordActivity("Logged Remittance", `${labelText} of ${formatCurrency(amount)} via ${mode} for "${party.name}"`);
+      showNotification(`Payment of ${formatCurrency(amount)} logged.`, "success");
       if (state.instances.paymentModal) {
         state.instances.paymentModal.hide();
       }
@@ -1177,8 +1261,11 @@ function deletePayment(id) {
   const payment = state.payments.find(p => p.id === id);
   if (!payment) return;
   
-  if (confirm(`Reverse payment of ${formatCurrency(payment.amount)} to "${payment.partyName}"? Outstanding dues will be updated.`)) {
+  if (confirm(`Reverse this payment transaction of ${formatCurrency(payment.amount)} for "${payment.partyName}"? Dues will be updated.`)) {
     toggleLoader(true);
+    const isCust = payment.partyType === 'Customer';
+    const labelText = isCust ? 'received' : 'disbursed';
+
     if (isSandboxMode) {
       const payList = LocalStorageEngine.get("payments");
       const partyList = LocalStorageEngine.get("parties");
@@ -1198,8 +1285,8 @@ function deletePayment(id) {
       LocalStorageEngine.save("payments", payList);
       LocalStorageEngine.save("parties", partyList);
       
-      recordActivity("Reversed Remittance Record", `Voided payment of ${formatCurrency(payment.amount)} to vendor "${payment.partyName}"`);
-      showNotification("Payment entry reversed.", "info");
+      recordActivity("Reversed Remittance", `Voided payment of ${formatCurrency(payment.amount)} ${labelText} to/from "${payment.partyName}"`);
+      showNotification("Payment transaction reversed.", "info");
       toggleLoader(false);
       syncGlobalState();
     } else {
@@ -1217,8 +1304,8 @@ function deletePayment(id) {
             }
           }
           state.payments = state.payments.filter(p => p.id !== id);
-          recordActivity("Reversed Remittance Record", `Voided payment of ${formatCurrency(payment.amount)} to vendor "${payment.partyName}"`);
-          showNotification("Payment entry reversed.", "info");
+          recordActivity("Reversed Remittance", `Voided payment of ${formatCurrency(payment.amount)} ${labelText} to/from "${payment.partyName}"`);
+          showNotification("Payment transaction reversed.", "info");
           syncGlobalState();
         }).catch(err => showNotification(err.message, "error"))
           .finally(() => toggleLoader(false));
@@ -1233,33 +1320,41 @@ function generateLedgerAudit() {
   const DOMNode = getDOM();
   const partyId = DOMNode.ledgerPartySelect.value;
   if (!partyId) {
-    showNotification("Please select a vendor party.", "info");
+    showNotification("Please select a vendor or customer party.", "info");
     return;
   }
   
   const party = state.parties.find(p => p.id === partyId);
   if (!party) return;
   
+  const isCust = party.type === 'Customer';
+  
+  // Update statement column naming conventions dynamically [1]
+  document.getElementById("ledger-headline-title").innerText = `${isCust ? 'CUSTOMER' : 'SUPPLIER'} STATEMENT LEDGER`;
+  document.getElementById("ledger-col-debit").innerText = isCust ? "Debit (Invoice Sales) (₹)" : "Debit (Purchase Bills) (₹)";
+  document.getElementById("ledger-col-credit").innerText = isCust ? "Credit (Payments Received) (₹)" : "Credit (Payments Settled) (₹)";
+  document.getElementById("ledger-col-balance").innerText = isCust ? "Dues Left (They Owe) (₹)" : "Outstanding (We Owe) (₹)";
+
   const partyBills = state.bills.filter(b => b.partyId === partyId);
   const partyPayments = state.payments.filter(p => p.partyId === partyId);
   
   const journal = [];
   
-  // Debit: Vendor Bills (What we purchased, increasing liability/due)
+  // Debit: Invoiced Sales or Purchases [1]
   partyBills.forEach(b => {
     journal.push({
       date: b.billDate,
-      desc: `Purchase Invoice Bill #${b.billNumber}`,
+      desc: isCust ? `Sales Invoice Bill #${b.billNumber}` : `Purchase Invoice Bill #${b.billNumber}`,
       debit: b.totalAmount,
       credit: 0
     });
   });
   
-  // Credit: Payments Made (What we paid, reducing liability/due)
+  // Credit: Incoming or Outgoing Cash [1]
   partyPayments.forEach(p => {
     journal.push({
       date: p.paymentDate,
-      desc: `Payment Settled via ${p.mode}`,
+      desc: isCust ? `Payment Received (${p.mode})` : `Payment Settled via ${p.mode}`,
       debit: 0,
       credit: p.amount
     });
@@ -1279,13 +1374,13 @@ function generateLedgerAudit() {
         <td class="fw-medium">${escapeHTML(txn.desc)}</td>
         <td class="text-end text-danger">${txn.debit > 0 ? formatCurrency(txn.debit) : '--'}</td>
         <td class="text-end text-success">${txn.credit > 0 ? formatCurrency(txn.credit) : '--'}</td>
-        <td class="text-end fw-bold ${balance > 0 ? 'text-danger' : 'text-success'}">${formatCurrency(balance)}</td>
+        <td class="text-end fw-bold ${balance > 0 ? (isCust ? 'text-primary' : 'text-danger') : 'text-success'}">${formatCurrency(balance)}</td>
       </tr>
     `);
   });
   
   if (journal.length === 0) {
-    tbodyHTML.push(`<tr><td colspan="5" class="text-center text-muted">No journal transactions on record.</td></tr>`);
+    tbodyHTML.push(`<tr><td colspan="5" class="text-center text-muted">No journal transactions on record for this timeline.</td></tr>`);
     DOMNode.btnPrintLedger.disabled = true;
   } else {
     DOMNode.btnPrintLedger.disabled = false;
@@ -1333,7 +1428,7 @@ function escapeHTML(str) {
 }
 
 // ==========================================
-// EXPOSE GLOBAL ATTRIBUTES FOR DOM BINDINGS (CRITICAL FOR ONCLICK ACTIONS)
+// EXPOSE GLOBAL ATTRIBUTES FOR DOM BINDINGS (CRITICAL FOR MOBILE BUTTON INTERACTIVITY)
 // ==========================================
 window.switchView = switchView;
 window.openPartyModal = openPartyModal;
