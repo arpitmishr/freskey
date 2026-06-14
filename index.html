@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>Freskey - Vendor & Customer Outstanding Ledger</title>
+  <title>Freskey - Customer & Vendor Outstanding Ledger</title>
   
   <!-- Bootstrap 5 CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -462,56 +462,8 @@
       
       <!-- VIEW: DASHBOARD -->
       <section id="view-dashboard" class="view-panel">
-        <!-- Section: Vendors & Payables -->
-        <h5 class="fw-bold mb-3" style="color: var(--freskey-color-5);"><i class="bi bi-shop me-2"></i>Vendors & Purchases (Payables)</h5>
-        <div class="row g-3 g-sm-4 mb-4">
-          <div class="col-12 col-sm-6 col-lg-3">
-            <div class="dashboard-card d-flex align-items-center justify-content-between">
-              <div>
-                <h6 class="text-muted text-uppercase mb-1 small fw-bold">Active Vendors</h6>
-                <h3 class="fw-bold mb-0" id="dash-total-vendors">0</h3>
-              </div>
-              <div class="card-icon bg-opacity-10" style="background-color: rgba(185, 75, 110, 0.15); color: var(--freskey-color-5);">
-                <i class="bi bi-people-fill"></i>
-              </div>
-            </div>
-          </div>
-          <div class="col-12 col-sm-6 col-lg-3">
-            <div class="dashboard-card d-flex align-items-center justify-content-between">
-              <div>
-                <h6 class="text-muted text-uppercase mb-1 small fw-bold">Total Purchases</h6>
-                <h3 class="fw-bold mb-0" id="dash-total-purchases">₹0.00</h3>
-              </div>
-              <div class="card-icon bg-opacity-10" style="background-color: rgba(185, 75, 110, 0.1); color: var(--freskey-color-5);">
-                <i class="bi bi-receipt"></i>
-              </div>
-            </div>
-          </div>
-          <div class="col-12 col-sm-6 col-lg-3">
-            <div class="dashboard-card d-flex align-items-center justify-content-between">
-              <div>
-                <h6 class="text-muted text-uppercase mb-1 small fw-bold">Total Paid to Vendors</h6>
-                <h3 class="fw-bold mb-0 text-success" id="dash-total-paid-vendors">₹0.00</h3>
-              </div>
-              <div class="card-icon bg-success bg-opacity-10 text-success">
-                <i class="bi bi-cash-stack"></i>
-              </div>
-            </div>
-          </div>
-          <div class="col-12 col-sm-6 col-lg-3">
-            <div class="dashboard-card d-flex align-items-center justify-content-between">
-              <div>
-                <h6 class="text-muted text-uppercase mb-1 small fw-bold">Outstanding Payable</h6>
-                <h3 class="fw-bold mb-0 text-danger" id="dash-total-payable">₹0.00</h3>
-              </div>
-              <div class="card-icon bg-opacity-10" style="background-color: rgba(185, 75, 110, 0.15); color: var(--freskey-color-5);">
-                <i class="bi bi-graph-down-arrow"></i>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Section: Customers & Receivables -->
+        
+        <!-- SECTION 1: CUSTOMERS & SALES (Receivables) - PRIORITIZED AT THE TOP -->
         <h5 class="fw-bold mb-3" style="color: var(--freskey-color-3);"><i class="bi bi-person-heart me-2"></i>Customers & Sales (Receivables)</h5>
         <div class="row g-3 g-sm-4 mb-4">
           <div class="col-12 col-sm-6 col-lg-3">
@@ -560,6 +512,55 @@
           </div>
         </div>
 
+        <!-- SECTION 2: VENDORS & PURCHASES (Payables) - SECONDARY BELOW -->
+        <h5 class="fw-bold mb-3" style="color: var(--freskey-color-5);"><i class="bi bi-shop me-2"></i>Vendors & Purchases (Payables)</h5>
+        <div class="row g-3 g-sm-4 mb-4">
+          <div class="col-12 col-sm-6 col-lg-3">
+            <div class="dashboard-card d-flex align-items-center justify-content-between">
+              <div>
+                <h6 class="text-muted text-uppercase mb-1 small fw-bold">Active Vendors</h6>
+                <h3 class="fw-bold mb-0" id="dash-total-vendors">0</h3>
+              </div>
+              <div class="card-icon bg-opacity-10" style="background-color: rgba(185, 75, 110, 0.15); color: var(--freskey-color-5);">
+                <i class="bi bi-people-fill"></i>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-sm-6 col-lg-3">
+            <div class="dashboard-card d-flex align-items-center justify-content-between">
+              <div>
+                <h6 class="text-muted text-uppercase mb-1 small fw-bold">Total Purchases</h6>
+                <h3 class="fw-bold mb-0" id="dash-total-purchases">₹0.00</h3>
+              </div>
+              <div class="card-icon bg-opacity-10" style="background-color: rgba(185, 75, 110, 0.1); color: var(--freskey-color-5);">
+                <i class="bi bi-receipt"></i>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-sm-6 col-lg-3">
+            <div class="dashboard-card d-flex align-items-center justify-content-between">
+              <div>
+                <h6 class="text-muted text-uppercase mb-1 small fw-bold">Total Paid to Vendors</h6>
+                <h3 class="fw-bold mb-0 text-success" id="dash-total-paid-vendors">₹0.00</h3>
+              </div>
+              <div class="card-icon bg-success bg-opacity-10 text-success">
+                <i class="bi bi-cash-stack"></i>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-sm-6 col-lg-3">
+            <div class="dashboard-card d-flex align-items-center justify-content-between">
+              <div>
+                <h6 class="text-muted text-uppercase mb-1 small fw-bold">Outstanding Payable</h6>
+                <h3 class="fw-bold mb-0 text-danger" id="dash-total-payable">₹0.00</h3>
+              </div>
+              <div class="card-icon bg-opacity-10" style="background-color: rgba(185, 75, 110, 0.15); color: var(--freskey-color-5);">
+                <i class="bi bi-graph-down-arrow"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="row g-4">
           <div class="col-12 col-xl-8">
             <div class="card border-0 shadow-sm rounded-3 p-4 bg-white mb-4" style="border: 1px solid rgba(146, 162, 169, 0.2) !important;">
@@ -568,6 +569,17 @@
                 <button class="btn btn-primary" onclick="openPartyModal()"><i class="bi bi-plus-circle me-1"></i>Add New Vendor / Customer</button>
                 <button class="btn btn-warning text-dark" onclick="openBillModal()" style="background-color: var(--freskey-color-6); border-color: var(--freskey-color-6); color: #ffffff;"><i class="bi bi-file-earmark-plus me-1"></i>Add Bill / Invoice</button>
                 <button class="btn btn-success" onclick="openPaymentModal()"><i class="bi bi-currency-rupee me-1"></i>Record Payment</button>
+              </div>
+            </div>
+            
+            <div class="card border-0 shadow-sm rounded-3 p-4 bg-white" style="border: 1px solid rgba(146, 162, 169, 0.2) !important;">
+              <h6 class="text-muted text-uppercase mb-1 small fw-bold">Overdue Audit Info</h6>
+              <div class="d-flex align-items-center justify-content-between border-top pt-2">
+                <div>
+                  <h6 class="fw-bold mb-0">Total Pending/Overdue Invoices</h6>
+                  <p class="text-muted mb-0 small">Invoices past their credit period due dates</p>
+                </div>
+                <h3 class="fw-bold mb-0 text-warning" id="dash-pending-count">0</h3>
               </div>
             </div>
           </div>
@@ -695,12 +707,15 @@
                 <option value="">-- Choose Party --</option>
               </select>
             </div>
-            <div class="col-12 col-md-6 d-flex gap-2">
+            <div class="col-12 col-md-6 d-flex flex-wrap gap-2">
               <button class="btn btn-primary flex-grow-1" id="btn-generate-ledger">
                 <i class="bi bi-file-text-fill me-2"></i>Generate Statement
               </button>
               <button class="btn btn-outline-dark" id="btn-print-ledger" disabled style="color: var(--freskey-color-2); border-color: var(--freskey-color-4);">
-                <i class="bi bi-printer-fill me-1"></i>Print / Download Ledger
+                <i class="bi bi-printer-fill me-1"></i>Print
+              </button>
+              <button class="btn btn-outline-primary" id="btn-download-ledger" disabled style="color: var(--freskey-color-3); border-color: var(--freskey-color-3);">
+                <i class="bi bi-download me-1"></i>Download CSV
               </button>
             </div>
           </div>
@@ -793,8 +808,9 @@
             
             <div class="form-floating mb-3">
               <select class="form-select" id="party-form-type" required>
-                <option value="Vendor" selected>Vendor (Someone you buy from)</option>
-                <option value="Customer">Customer (Someone you sell to)</option>
+                <!-- Default is Customer [1] -->
+                <option value="Customer" selected>Customer (Someone you sell to)</option>
+                <option value="Vendor">Vendor (Someone you buy from)</option>
               </select>
               <label for="party-form-type">Party / Profile Type</label>
             </div>
@@ -851,9 +867,9 @@
             </div>
             <div class="col-12 col-md-6 border-start-md ps-md-4">
               <div class="p-3 bg-light rounded-3">
-                <p class="text-muted mb-1 small fw-bold" id="party-detail-total-billed-label">TOTAL PURCHASES</p>
+                <p class="text-muted mb-1 small fw-bold" id="party-detail-total-billed-label">TOTAL SALES (INVOICES)</p>
                 <h5 class="fw-bold text-dark mb-3" id="party-detail-total-bills">₹0.00</h5>
-                <p class="text-muted mb-1 small fw-bold" id="party-detail-total-payments-label">TOTAL PAID</p>
+                <p class="text-muted mb-1 small fw-bold" id="party-detail-total-payments-label">TOTAL RECEIVED</p>
                 <h5 class="fw-bold text-success mb-3" id="party-detail-total-payments">₹0.00</h5>
                 <p class="text-muted mb-1 small fw-bold" id="party-detail-outstanding-label">DUES LEFT</p>
                 <h5 class="fw-bold mb-0 text-danger" id="party-detail-outstanding">₹0.00</h5>
@@ -997,7 +1013,7 @@
 
             <div class="form-floating mb-3">
               <select class="form-select" id="payment-form-mode" required>
-                <option value="Cash">Cash</option>
+                <option value="Cash" selected>Cash</option>
                 <option value="Bank Transfer">Bank Transfer</option>
                 <option value="UPI">UPI</option>
                 <option value="Cheque">Cheque</option>
@@ -1014,7 +1030,7 @@
     </div>
   </div>
 
-  <!-- Bootstrap 5 JavaScript Bundle -->
+  <!-- Bootstrap 5 JavaScript Bundle (CRITICAL FIX FOR MODALS & BUTTONS) -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
   <!-- FIREBASE SDK COMPAT CDN -->
