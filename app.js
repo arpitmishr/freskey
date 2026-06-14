@@ -1,7 +1,4 @@
-// ==========================================
-// FIREBASE CONFIGURATION CONFIG & INITIALIZATION
-// ==========================================
-// Paste your Firebase Credentials inside this block to deploy on Spark Plan free tier
+
 const firebaseConfig = {
   apiKey: "AIzaSyC_Be4ubX04WMKvwbqgzIFr-z0Uy_Kiaw4",
   authDomain: "freskey-c5489.firebaseapp.com",
@@ -416,7 +413,7 @@ function renderPartiesUI(filterText = "") {
       html.push(`
         <tr>
           <td>
-            <a href="#" onclick="viewPartyDetails('${p.id}')" class="fw-bold text-decoration-none text-primary">
+            <a href="#" onclick="viewPartyDetails('${p.id}')" class="fw-bold text-decoration-none" style="color: var(--freskey-color-3);">
               ${escapeHTML(p.name)}
             </a>
           </td>
@@ -463,7 +460,7 @@ function renderBillsUI(filterText = "") {
           <td>${formatDateString(b.billDate)}</td>
           <td>${formatDateString(b.dueDate)}</td>
           <td class="fw-medium">${escapeHTML(b.partyName)}</td>
-          <td class="text-end fw-bold text-primary">${formatCurrency(b.totalAmount)}</td>
+          <td class="text-end fw-bold" style="color: var(--freskey-color-3);">${formatCurrency(b.totalAmount)}</td>
           <td class="text-center">
             <div class="btn-group btn-group-sm">
               <button class="btn btn-outline-dark" onclick="editBill('${b.id}')" title="Edit Bill"><i class="bi bi-pencil"></i></button>
@@ -528,7 +525,7 @@ function renderActivitiesUI() {
         <tr>
           <td><small class="text-muted fw-bold">${stamp}</small></td>
           <td><span class="badge bg-light text-dark border">${escapeHTML(act.userName)}</span></td>
-          <td><span class="badge bg-dark">${escapeHTML(act.action)}</span></td>
+          <td><span class="badge" style="background-color: var(--freskey-color-2); color: #ffffff;">${escapeHTML(act.action)}</span></td>
           <td><span class="small">${escapeHTML(act.description)}</span></td>
         </tr>
       `);
@@ -637,7 +634,7 @@ function deleteParty(id) {
         recordActivity("Deleted Party", `Soft deleted party vendor: "${party.name}"`);
         
         state.parties = state.parties.filter(p => p.id !== id);
-        showNotification(`Vendor "${party.name}" removed securely.`, "info");
+        showNotification(`Vendor "${party.name}" removed.`, "info");
         updateLocalStateAndSync();
       }).catch(err => {
         toggleLoader(false);
