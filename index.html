@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>Freskey - Vendor & Billing Ledger System</title>
+  <title>Freskey - Vendor Ledger & Outstanding Balances</title>
   
   <!-- Bootstrap 5 CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -12,16 +12,15 @@
   <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
   
-  <!-- Custom CSS applying the Freskey Color Palette -->
+  <!-- Style overrides using Freskey Color Palette -->
   <style>
     :root {
-      /* Palette Definition */
       --freskey-color-1: #EEF0F0; /* Soft canvas background */
-      --freskey-color-2: #0A282A; /* Deep slate dark-teal (Text, menus, headers) */
-      --freskey-color-3: #63B3B4; /* Accent soft-teal (Buttons, active tabs, pill highlight) */
-      --freskey-color-4: #92A2A9; /* Gray-blue (Muted text, inactive tabs, borders) */
-      --freskey-color-5: #B94B6E; /* Rose-crimson (Outstanding alerts, deletions, errors) */
-      --freskey-color-6: #7C7C74; /* Olive-gray (Secondary metadata, borders) */
+      --freskey-color-2: #0A282A; /* Dark slate-teal text, sidebar and bottom nav background */
+      --freskey-color-3: #63B3B4; /* Accent soft-teal for primary actions and active states */
+      --freskey-color-4: #92A2A9; /* Gray-blue for borders, placeholder, inactive elements */
+      --freskey-color-5: #B94B6E; /* Rose-crimson for outstanding balances, delete actions */
+      --freskey-color-6: #7C7C74; /* Olive-gray for secondary metadata */
 
       --light-bg: var(--freskey-color-1);
       --dark-text: var(--freskey-color-2);
@@ -50,36 +49,32 @@
       border-radius: 4px;
     }
 
-    /* Auth Screen */
+    /* Auth Screen styling */
     #auth-screen {
       min-height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
-      background: linear-gradient(135deg, var(--freskey-color-2) 0%, #153c3e 100%);
+      background: linear-gradient(135deg, var(--freskey-color-2) 0%, #114245 100%);
     }
 
     .auth-card {
       background: #ffffff;
       border-radius: 12px;
-      box-shadow: 0 10px 30px rgba(10, 40, 42, 0.15);
+      box-shadow: 0 10px 30px rgba(10, 40, 42, 0.2);
       width: 100%;
       max-width: 420px;
       padding: 2.5rem;
-      border: 1px solid rgba(146, 162, 169, 0.2);
+      border: 1px solid rgba(146, 162, 169, 0.3);
     }
 
-    .auth-card h4 {
-      color: var(--freskey-color-2);
-    }
-
-    /* Main Application Layout */
+    /* Main Container Layout */
     #app-container {
       display: flex;
       min-height: 100vh;
     }
 
-    /* Desktop Sidebar using deep slate dark-teal background */
+    /* Side navigation bar for Desktop viewports */
     #sidebar {
       width: var(--sidebar-width);
       background-color: var(--freskey-color-2);
@@ -130,13 +125,13 @@
       color: #ffffff;
     }
 
-    /* Sidebar Active Tab uses the soft teal background with dark-teal text */
+    /* Active navigation item uses light background pill on the text */
     .sidebar-item.active a {
       background-color: var(--freskey-color-3);
       color: var(--freskey-color-2);
     }
 
-    /* Top Bar Header */
+    /* Top Bar Header Layout */
     #topbar {
       height: 64px;
       background-color: #ffffff;
@@ -153,7 +148,7 @@
       transition: all 0.3s ease;
     }
 
-    /* Main view panel wrapper */
+    /* Main workspace wrapper panel */
     #main-content {
       margin-left: var(--sidebar-width);
       margin-top: 64px;
@@ -162,7 +157,7 @@
       transition: all 0.3s ease;
     }
 
-    /* Material Cards Styling */
+    /* Material design shadow structures */
     .dashboard-card {
       background: #ffffff;
       border: 1px solid rgba(146, 162, 169, 0.2);
@@ -186,19 +181,15 @@
       font-size: 1.5rem;
     }
 
-    /* Colors and typography styling */
+    /* UI typography highlights */
     .text-danger, .text-error {
       color: var(--freskey-color-5) !important;
     }
     .text-muted {
       color: var(--freskey-color-4) !important;
     }
-    .badge-rose {
-      background-color: var(--freskey-color-5);
-      color: #ffffff;
-    }
 
-    /* Dynamic Button Overrides */
+    /* Action buttons overrides */
     .btn-primary {
       background-color: var(--freskey-color-3);
       border-color: var(--freskey-color-3);
@@ -220,7 +211,65 @@
       color: #ffffff;
     }
 
-    /* Recent Activity Timeline styling with custom palette */
+    /* Modern minimalist floating bottom navigation for mobile viewports */
+    .mobile-bottom-nav {
+      position: fixed;
+      bottom: calc(15px + env(safe-area-inset-bottom));
+      left: 15px;
+      right: 15px;
+      height: 60px;
+      background-color: var(--freskey-color-2);
+      border-radius: 50px;
+      box-shadow: 0 10px 30px rgba(10, 40, 42, 0.35);
+      z-index: 1040;
+      display: none;
+      align-items: center;
+      justify-content: space-around;
+      padding: 0 10px;
+      border: 1px solid rgba(146, 162, 169, 0.15);
+    }
+
+    .mobile-nav-item {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--freskey-color-4);
+      text-decoration: none;
+      font-weight: 500;
+      border-radius: 40px;
+      padding: 8px 16px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      cursor: pointer;
+    }
+
+    .mobile-nav-item i {
+      font-size: 1.35rem;
+      display: flex;
+      align-items: center;
+    }
+
+    .mobile-nav-label {
+      font-size: 0.85rem;
+      display: none;
+      margin-left: 8px;
+    }
+
+    /* Pill state for the active tab */
+    .mobile-nav-item.active {
+      background-color: var(--freskey-color-3);
+      color: var(--freskey-color-2);
+    }
+
+    .mobile-nav-item.active .mobile-nav-label {
+      display: inline;
+    }
+
+    .form-control:focus, .form-select:focus {
+      border-color: var(--freskey-color-3);
+      box-shadow: 0 0 0 0.25rem rgba(99, 179, 180, 0.25);
+    }
+
+    /* Recent Action Timeline */
     .timeline {
       position: relative;
       padding-left: 2rem;
@@ -254,66 +303,7 @@
       box-shadow: 0 0 0 2px var(--freskey-color-2);
     }
 
-    /* Minimal Pill-Shaped Floating Bottom Navigation Bar for Mobile */
-    .mobile-bottom-nav {
-      position: fixed;
-      bottom: calc(15px + env(safe-area-inset-bottom));
-      left: 15px;
-      right: 15px;
-      height: 60px;
-      background-color: var(--freskey-color-2); /* Dark slate background matching top sidebar */
-      border-radius: 50px;
-      box-shadow: 0 10px 30px rgba(10, 40, 42, 0.35);
-      z-index: 1040;
-      display: none;
-      align-items: center;
-      justify-content: space-around;
-      padding: 0 10px;
-      border: 1px solid rgba(146, 162, 169, 0.15);
-    }
-
-    .mobile-nav-item {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--freskey-color-4); /* Slate grey inactive icons */
-      text-decoration: none;
-      font-weight: 500;
-      border-radius: 40px;
-      padding: 8px 16px;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      cursor: pointer;
-    }
-
-    .mobile-nav-item i {
-      font-size: 1.35rem;
-      display: flex;
-      align-items: center;
-    }
-
-    .mobile-nav-label {
-      font-size: 0.85rem;
-      display: none;
-      margin-left: 8px;
-    }
-
-    /* Active Mobile Nav State: Soft-teal background pill with dark text */
-    .mobile-nav-item.active {
-      background-color: var(--freskey-color-3); /* Color-3 soft-teal */
-      color: var(--freskey-color-2); /* Color-2 dark text */
-    }
-
-    .mobile-nav-item.active .mobile-nav-label {
-      display: inline;
-    }
-
-    /* General Input Forms */
-    .form-control:focus, .form-select:focus {
-      border-color: var(--freskey-color-3);
-      box-shadow: 0 0 0 0.25rem rgba(99, 179, 180, 0.25);
-    }
-
-    /* Responsive Adjustments for Mobile and iPhones */
+    /* Responsive adjustments */
     @media (max-width: 991.98px) {
       #sidebar {
         display: none !important;
@@ -326,15 +316,14 @@
         margin-left: 0;
         width: 100%;
         padding: 1.25rem;
-        /* Bottom margin to prevent overlay over floating menu bar */
         padding-bottom: calc(90px + env(safe-area-inset-bottom));
       }
       .mobile-bottom-nav {
-        display: flex; /* Active only on mobile layout sizes */
+        display: flex;
       }
     }
 
-    /* Print styling */
+    /* Native Print styles */
     @media print {
       body * {
         visibility: hidden;
@@ -360,7 +349,12 @@
     </div>
   </div>
 
-  <!-- AUTH SCREEN (Email/Password Login) -->
+  <!-- OFFLINE MODE BANNER -->
+  <div id="sandbox-banner" class="bg-warning text-dark text-center py-2 px-3 fw-medium d-none" style="font-size: 0.9rem; border-bottom: 1px solid rgba(10,40,42,0.1);">
+    <i class="bi bi-cloud-slash-fill me-2"></i> Running in <strong>Local Offline Mode</strong>. Data is securely saved to this device's LocalStorage. Add real credentials to app.js for Firebase integration.
+  </div>
+
+  <!-- AUTH SCREEN -->
   <div id="auth-screen">
     <div class="auth-card">
       <div class="text-center mb-4">
@@ -390,53 +384,53 @@
     <!-- DESKTOP SIDEBAR -->
     <aside id="sidebar">
       <div class="sidebar-brand">
-        <i class="bi bi-wallet2 text-primary"></i>
+        <i class="bi bi-wallet2"></i>
         <span>Freskey</span>
       </div>
       <ul class="sidebar-menu">
         <li class="sidebar-item active" data-view="dashboard">
-          <a href="#"><i class="bi bi-grid-1x2-fill"></i>Dashboard</a>
+          <a href="#" onclick="switchView('dashboard'); return false;"><i class="bi bi-grid-1x2-fill"></i>Dashboard</a>
         </li>
         <li class="sidebar-item" data-view="parties">
-          <a href="#"><i class="bi bi-people-fill"></i>Parties</a>
+          <a href="#" onclick="switchView('parties'); return false;"><i class="bi bi-people-fill"></i>Parties (Vendors)</a>
         </li>
         <li class="sidebar-item" data-view="bills">
-          <a href="#"><i class="bi bi-receipt"></i>Bills</a>
+          <a href="#" onclick="switchView('bills'); return false;"><i class="bi bi-receipt"></i>Bills (Purchases)</a>
         </li>
         <li class="sidebar-item" data-view="payments">
-          <a href="#"><i class="bi bi-cash-stack"></i>Payments</a>
+          <a href="#" onclick="switchView('payments'); return false;"><i class="bi bi-cash-stack"></i>Payments (Paid)</a>
         </li>
         <li class="sidebar-item" data-view="ledger">
-          <a href="#"><i class="bi bi-journal-text"></i>Ledger</a>
+          <a href="#" onclick="switchView('ledger'); return false;"><i class="bi bi-journal-text"></i>Ledger Book</a>
         </li>
         <li class="sidebar-item" data-view="activity">
-          <a href="#"><i class="bi bi-clock-history"></i>Activity History</a>
+          <a href="#" onclick="switchView('activity'); return false;"><i class="bi bi-clock-history"></i>Activity History</a>
         </li>
       </ul>
       <div class="p-3 border-top text-center text-muted small" style="border-top: 1px solid rgba(146, 162, 169, 0.2) !important;">
-        <i class="bi bi-shield-check text-success"></i> Firebase Spark Protected
+        <i class="bi bi-shield-check text-success"></i> Data Storage Operational
       </div>
     </aside>
 
     <!-- FLOATING BOTTOM NAVIGATION (Only visible on Mobile / iPhones) -->
     <nav class="mobile-bottom-nav">
-      <div class="mobile-nav-item active" data-view="dashboard">
+      <div class="mobile-nav-item active" data-view="dashboard" onclick="switchView('dashboard')">
         <i class="bi bi-house-door"></i>
         <span class="mobile-nav-label">Home</span>
       </div>
-      <div class="mobile-nav-item" data-view="parties">
+      <div class="mobile-nav-item" data-view="parties" onclick="switchView('parties')">
         <i class="bi bi-people"></i>
         <span class="mobile-nav-label">Parties</span>
       </div>
-      <div class="mobile-nav-item" data-view="bills">
+      <div class="mobile-nav-item" data-view="bills" onclick="switchView('bills')">
         <i class="bi bi-receipt"></i>
         <span class="mobile-nav-label">Bills</span>
       </div>
-      <div class="mobile-nav-item" data-view="payments">
+      <div class="mobile-nav-item" data-view="payments" onclick="switchView('payments')">
         <i class="bi bi-cash-stack"></i>
         <span class="mobile-nav-label">Payments</span>
       </div>
-      <div class="mobile-nav-item" data-view="ledger">
+      <div class="mobile-nav-item" data-view="ledger" onclick="switchView('ledger')">
         <i class="bi bi-journal-text"></i>
         <span class="mobile-nav-label">Ledger</span>
       </div>
@@ -470,7 +464,7 @@
           <div class="col-12 col-sm-6 col-lg-4">
             <div class="dashboard-card d-flex align-items-center justify-content-between">
               <div>
-                <h6 class="text-muted text-uppercase mb-1 small fw-bold">Active Parties</h6>
+                <h6 class="text-muted text-uppercase mb-1 small fw-bold">Active Vendors</h6>
                 <h3 class="fw-bold mb-0" id="dash-total-parties">0</h3>
               </div>
               <div class="card-icon bg-opacity-10" style="background-color: rgba(99, 179, 180, 0.15); color: var(--freskey-color-3);">
@@ -481,7 +475,7 @@
           <div class="col-12 col-sm-6 col-lg-4">
             <div class="dashboard-card d-flex align-items-center justify-content-between">
               <div>
-                <h6 class="text-muted text-uppercase mb-1 small fw-bold">Total Invoiced</h6>
+                <h6 class="text-muted text-uppercase mb-1 small fw-bold">Total Purchases (Bills)</h6>
                 <h3 class="fw-bold mb-0" id="dash-total-bills">₹0.00</h3>
               </div>
               <div class="card-icon bg-opacity-10" style="background-color: rgba(124, 124, 116, 0.15); color: var(--freskey-color-6);">
@@ -492,7 +486,7 @@
           <div class="col-12 col-sm-6 col-lg-4">
             <div class="dashboard-card d-flex align-items-center justify-content-between">
               <div>
-                <h6 class="text-muted text-uppercase mb-1 small fw-bold">Outstanding Due</h6>
+                <h6 class="text-muted text-uppercase mb-1 small fw-bold">Outstanding Due (We Owe)</h6>
                 <h3 class="fw-bold mb-0 text-danger" id="dash-total-outstanding">₹0.00</h3>
               </div>
               <div class="card-icon bg-opacity-10" style="background-color: rgba(185, 75, 110, 0.15); color: var(--freskey-color-5);">
@@ -503,7 +497,7 @@
           <div class="col-12 col-sm-6 col-lg-4">
             <div class="dashboard-card d-flex align-items-center justify-content-between">
               <div>
-                <h6 class="text-muted text-uppercase mb-1 small fw-bold">Total Payments</h6>
+                <h6 class="text-muted text-uppercase mb-1 small fw-bold">Total Paid to Vendors</h6>
                 <h3 class="fw-bold mb-0 text-success" id="dash-total-payments">₹0.00</h3>
               </div>
               <div class="card-icon bg-success bg-opacity-10 text-success">
@@ -527,10 +521,10 @@
         <div class="row g-4">
           <div class="col-12 col-xl-8">
             <div class="card border-0 shadow-sm rounded-3 p-4 bg-white mb-4" style="border: 1px solid rgba(146, 162, 169, 0.2) !important;">
-              <h5 class="fw-bold mb-3" style="color: var(--freskey-color-2);">System Actions Quick Access</h5>
+              <h5 class="fw-bold mb-3" style="color: var(--freskey-color-2);">Action Console</h5>
               <div class="d-flex flex-wrap gap-2">
-                <button class="btn btn-primary" onclick="openPartyModal()"><i class="bi bi-plus-circle me-1"></i>New Party</button>
-                <button class="btn btn-warning text-dark" onclick="openBillModal()" style="background-color: var(--freskey-color-6); border-color: var(--freskey-color-6); color: #ffffff;"><i class="bi bi-file-earmark-plus me-1"></i>New Bill</button>
+                <button class="btn btn-primary" onclick="openPartyModal()"><i class="bi bi-plus-circle me-1"></i>Add New Vendor</button>
+                <button class="btn btn-warning text-dark" onclick="openBillModal()" style="background-color: var(--freskey-color-6); border-color: var(--freskey-color-6); color: #ffffff;"><i class="bi bi-file-earmark-plus me-1"></i>Add Vendor Bill</button>
                 <button class="btn btn-success" onclick="openPaymentModal()"><i class="bi bi-currency-rupee me-1"></i>Record Payment</button>
               </div>
             </div>
@@ -553,10 +547,10 @@
           <div class="d-flex flex-column flex-sm-row justify-content-between align-items-stretch align-items-sm-center gap-3 mb-4">
             <div class="input-group search-bar" style="max-width: 100%;">
               <span class="input-group-text bg-white border-end-0" style="border-color: rgba(146, 162, 169, 0.3);"><i class="bi bi-search text-muted"></i></span>
-              <input type="text" class="form-control border-start-0" id="party-search-input" placeholder="Search party details..." style="border-color: rgba(146, 162, 169, 0.3);">
+              <input type="text" class="form-control border-start-0" id="party-search-input" placeholder="Search Vendor Name, mobile or GST..." style="border-color: rgba(146, 162, 169, 0.3);">
             </div>
             <button class="btn btn-primary shadow-sm" onclick="openPartyModal()">
-              <i class="bi bi-person-plus-fill me-2"></i>Create New Party
+              <i class="bi bi-person-plus-fill me-2"></i>Create New Vendor
             </button>
           </div>
 
@@ -564,12 +558,12 @@
             <table class="table table-hover align-middle border-top" id="parties-table">
               <thead class="table-light">
                 <tr>
-                  <th>Party Name</th>
+                  <th>Vendor Name</th>
                   <th>GST Number</th>
                   <th>Mobile Number</th>
-                  <th class="text-end">Total Bills (₹)</th>
-                  <th class="text-end">Total Paid (₹)</th>
-                  <th class="text-end">Outstanding (₹)</th>
+                  <th class="text-end">Purchases (Bills)</th>
+                  <th class="text-end">Settled (Paid)</th>
+                  <th class="text-end">Outstanding (Due)</th>
                   <th class="text-center">Action Options</th>
                 </tr>
               </thead>
@@ -587,7 +581,7 @@
           <div class="d-flex flex-column flex-sm-row justify-content-between align-items-stretch align-items-sm-center gap-3 mb-4">
             <div class="input-group search-bar" style="max-width: 100%;">
               <span class="input-group-text bg-white border-end-0" style="border-color: rgba(146, 162, 169, 0.3);"><i class="bi bi-search text-muted"></i></span>
-              <input type="text" class="form-control border-start-0" id="bill-search-input" placeholder="Search bill / party..." style="border-color: rgba(146, 162, 169, 0.3);">
+              <input type="text" class="form-control border-start-0" id="bill-search-input" placeholder="Search bill # or vendor..." style="border-color: rgba(146, 162, 169, 0.3);">
             </div>
             <button class="btn btn-primary shadow-sm" onclick="openBillModal()">
               <i class="bi bi-file-earmark-plus-fill me-2"></i>Create New Bill
@@ -601,8 +595,8 @@
                   <th>Bill Number</th>
                   <th>Bill Date</th>
                   <th>Due Date</th>
-                  <th>Party Vendor</th>
-                  <th class="text-end">Total Amount (₹)</th>
+                  <th>Vendor Name</th>
+                  <th class="text-end">Bill Total</th>
                   <th class="text-center">Action Options</th>
                 </tr>
               </thead>
@@ -620,10 +614,10 @@
           <div class="d-flex flex-column flex-sm-row justify-content-between align-items-stretch align-items-sm-center gap-3 mb-4">
             <div class="input-group search-bar" style="max-width: 100%;">
               <span class="input-group-text bg-white border-end-0" style="border-color: rgba(146, 162, 169, 0.3);"><i class="bi bi-search text-muted"></i></span>
-              <input type="text" class="form-control border-start-0" id="payment-search-input" placeholder="Search party or payments..." style="border-color: rgba(146, 162, 169, 0.3);">
+              <input type="text" class="form-control border-start-0" id="payment-search-input" placeholder="Search vendor or payments..." style="border-color: rgba(146, 162, 169, 0.3);">
             </div>
             <button class="btn btn-primary shadow-sm" onclick="openPaymentModal()">
-              <i class="bi bi-currency-rupee me-2"></i>Record Payment
+              <i class="bi bi-currency-rupee me-2"></i>Record Payment Paid
             </button>
           </div>
 
@@ -632,9 +626,9 @@
               <thead class="table-light">
                 <tr>
                   <th>Payment Date</th>
-                  <th>Party Name</th>
-                  <th>Payment Mode</th>
-                  <th class="text-end">Amount Paid (₹)</th>
+                  <th>Vendor Name</th>
+                  <th>Mode</th>
+                  <th class="text-end">Amount Paid</th>
                   <th class="text-center">Action Options</th>
                 </tr>
               </thead>
@@ -651,9 +645,9 @@
         <div class="card border-0 shadow-sm rounded-3 bg-white p-3 p-sm-4 mb-4" style="border: 1px solid rgba(146, 162, 169, 0.2) !important;">
           <div class="row align-items-end g-3">
             <div class="col-12 col-md-6">
-              <label for="ledger-party-select" class="form-label fw-bold" style="color: var(--freskey-color-2);">Select Party Vendor</label>
+              <label for="ledger-party-select" class="form-label fw-bold" style="color: var(--freskey-color-2);">Select Vendor Party</label>
               <select class="form-select" id="ledger-party-select" style="border-color: rgba(146, 162, 169, 0.3);">
-                <option value="">-- Choose Party --</option>
+                <option value="">-- Choose Vendor --</option>
               </select>
             </div>
             <div class="col-12 col-md-6 d-flex gap-2">
@@ -670,7 +664,7 @@
         <div id="print-area" class="card border-0 shadow-sm rounded-3 bg-white p-3 p-sm-4 d-none" style="border: 1px solid rgba(146, 162, 169, 0.2) !important;">
           <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start border-bottom pb-4 mb-4 gap-3" style="border-bottom-color: rgba(146, 162, 169, 0.2) !important;">
             <div>
-              <h2 class="fw-bold mb-1" style="color: var(--freskey-color-2);">VENDOR ACCOUNT LEDGER</h2>
+              <h2 class="fw-bold mb-1" style="color: var(--freskey-color-2);">SUPPLIER STATEMENT LEDGER</h2>
               <p class="text-muted mb-0 small">Generated automatically on: <span id="ledger-generation-date">--</span></p>
             </div>
             <div class="text-start text-sm-end">
@@ -687,12 +681,12 @@
                   <th style="width: 45%">Description & Remarks</th>
                   <th class="text-end" style="width: 13%">Debit (Bills) (₹)</th>
                   <th class="text-end" style="width: 13%">Credit (Payments) (₹)</th>
-                  <th class="text-end" style="width: 14%">Running Balance (₹)</th>
+                  <th class="text-end" style="width: 14%">Outstanding Balance (₹)</th>
                 </tr>
               </thead>
               <tbody id="ledger-tbody">
                 <tr>
-                  <td colspan="5" class="text-center text-muted">Please select a party first.</td>
+                  <td colspan="5" class="text-center text-muted">Please select a vendor first.</td>
                 </tr>
               </tbody>
             </table>
@@ -705,7 +699,7 @@
         <div class="card border-0 shadow-sm rounded-3 bg-white p-3 p-sm-4" style="border: 1px solid rgba(146, 162, 169, 0.2) !important;">
           <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-4" style="border-bottom-color: rgba(146, 162, 169, 0.2) !important;">
             <h5 class="mb-0 fw-bold" style="color: var(--freskey-color-2);">System Activities Logs</h5>
-            <span class="badge px-3 py-2" style="background-color: var(--freskey-color-2); color: #ffffff;">Security Auditable (Read Only)</span>
+            <span class="badge px-3 py-2" style="background-color: var(--freskey-color-2); color: #ffffff;">Read Only History</span>
           </div>
           <div class="table-responsive">
             <table class="table table-hover align-middle">
@@ -745,15 +739,15 @@
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content border-0 shadow-lg" style="border: 1px solid rgba(146, 162, 169, 0.2) !important;">
         <div class="modal-header border-bottom py-3">
-          <h5 class="modal-title fw-bold" id="modal-party-title" style="color: var(--freskey-color-2);">Create Vendor Party</h5>
+          <h5 class="modal-title fw-bold" id="modal-party-title" style="color: var(--freskey-color-2);">Create Vendor</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <form id="party-form">
           <div class="modal-body p-4">
             <input type="hidden" id="party-form-id">
             <div class="form-floating mb-3">
-              <input type="text" class="form-control" id="party-form-name" placeholder="Party Name" required>
-              <label for="party-form-name">Party / Vendor Name</label>
+              <input type="text" class="form-control" id="party-form-name" placeholder="Vendor Name" required>
+              <label for="party-form-name">Vendor Name</label>
             </div>
             <div class="form-floating mb-3">
               <input type="tel" class="form-control" id="party-form-mobile" placeholder="Mobile" required>
@@ -786,7 +780,7 @@
     <div class="modal-dialog modal-lg modal-dialog-centered">
       <div class="modal-content border-0 shadow-lg" style="border: 1px solid rgba(146, 162, 169, 0.2) !important;">
         <div class="modal-header text-white py-3" style="background-color: var(--freskey-color-2);">
-          <h5 class="modal-title fw-bold" id="party-detail-title">Party Profile Information</h5>
+          <h5 class="modal-title fw-bold" id="party-detail-title">Vendor Profile Information</h5>
           <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body p-4">
@@ -801,24 +795,24 @@
             </div>
             <div class="col-12 col-md-6 border-start-md ps-md-4">
               <div class="p-3 bg-light rounded-3">
-                <p class="text-muted mb-1 small fw-bold">TOTAL BILLED AMOUNT</p>
+                <p class="text-muted mb-1 small fw-bold">TOTAL PURCHASES (BILLS)</p>
                 <h5 class="fw-bold text-dark mb-3" id="party-detail-total-bills">₹0.00</h5>
-                <p class="text-muted mb-1 small fw-bold">TOTAL AMOUNT PAID</p>
+                <p class="text-muted mb-1 small fw-bold">TOTAL REMITTED (PAID)</p>
                 <h5 class="fw-bold text-success mb-3" id="party-detail-total-payments">₹0.00</h5>
-                <p class="text-muted mb-1 small fw-bold">OUTSTANDING DUE</p>
+                <p class="text-muted mb-1 small fw-bold">OUTSTANDING DUE BALANCE</p>
                 <h5 class="fw-bold mb-0 text-danger" id="party-detail-outstanding">₹0.00</h5>
               </div>
             </div>
           </div>
-          <h6 class="fw-bold mb-3" style="color: var(--freskey-color-2);"><i class="bi bi-journal-text me-2" style="color: var(--freskey-color-3);"></i>Recent Associated Bills & Payments</h6>
+          <h6 class="fw-bold mb-3" style="color: var(--freskey-color-2);"><i class="bi bi-journal-text me-2" style="color: var(--freskey-color-3);"></i>Recent Bills & Payments</h6>
           <div class="table-responsive">
             <table class="table table-bordered table-sm small align-middle">
               <thead class="table-light">
                 <tr>
                   <th>Date</th>
                   <th>Transaction Type</th>
-                  <th class="text-end">Debit (Bills)</th>
-                  <th class="text-end">Credit (Payments)</th>
+                  <th class="text-end">Debit (Purchase)</th>
+                  <th class="text-end">Credit (Remitted)</th>
                 </tr>
               </thead>
               <tbody id="party-detail-transactions-tbody">
@@ -839,7 +833,7 @@
     <div class="modal-dialog modal-xl modal-dialog-centered">
       <div class="modal-content border-0 shadow-lg" style="border: 1px solid rgba(146, 162, 169, 0.2) !important;">
         <div class="modal-header border-bottom py-3">
-          <h5 class="modal-title fw-bold" id="modal-bill-title" style="color: var(--freskey-color-2);">Create Vendor Purchase Invoice</h5>
+          <h5 class="modal-title fw-bold" id="modal-bill-title" style="color: var(--freskey-color-2);">Add Vendor Invoice (Bill)</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <form id="bill-form">
@@ -850,7 +844,7 @@
               <div class="col-12 col-sm-6 col-md-3">
                 <div class="form-floating">
                   <input type="text" class="form-control" id="bill-form-number" placeholder="Bill No" required>
-                  <label for="bill-form-number">Invoice Number (#)</label>
+                  <label for="bill-form-number">Invoice/Bill Number (#)</label>
                 </div>
               </div>
               <div class="col-12 col-sm-6 col-md-3">
@@ -858,7 +852,7 @@
                   <select class="form-select" id="bill-form-party-id" required>
                     <!-- Dynamically Loaded -->
                   </select>
-                  <label for="bill-form-party-id">Select Vendor Party</label>
+                  <label for="bill-form-party-id">Select Vendor</label>
                 </div>
               </div>
               <div class="col-12 col-sm-6 col-md-3">
@@ -875,14 +869,14 @@
               </div>
             </div>
 
-            <h6 class="fw-bold border-bottom pb-2 mb-3" style="color: var(--freskey-color-2);">Purchased Items Breakdown</h6>
+            <h6 class="fw-bold border-bottom pb-2 mb-3" style="color: var(--freskey-color-2);">Purchased Products breakdown</h6>
             
             <div class="table-responsive mb-3">
               <table class="table table-bordered align-middle" id="bill-items-table" style="min-width: 600px;">
                 <thead class="table-light">
                   <tr>
-                    <th>Particulars Name / Description</th>
-                    <th style="width: 100px;">Qty</th>
+                    <th>Product Name / Description</th>
+                    <th style="width: 100px;">Quantity</th>
                     <th style="width: 140px;">Rate (₹)</th>
                     <th style="width: 160px;">Amount (₹)</th>
                     <th style="width: 50px;"></th>
@@ -900,7 +894,7 @@
               </button>
               <div class="text-end" style="min-width: 200px;">
                 <div class="d-flex justify-content-between border-top pt-2" style="border-top-color: rgba(146, 162, 169, 0.2) !important;">
-                  <span class="fw-bold me-2">Grand Total Amount:</span>
+                  <span class="fw-bold me-2">Bill Total Amount:</span>
                   <span class="fw-bold fs-5" id="bill-items-grand-total" style="color: var(--freskey-color-3);">₹0.00</span>
                 </div>
               </div>
@@ -909,7 +903,7 @@
           </div>
           <div class="modal-footer bg-light border-top">
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            <button type="submit" class="btn btn-primary px-4 fw-medium">Record Invoice</button>
+            <button type="submit" class="btn btn-primary px-4 fw-medium">Record Purchase</button>
           </div>
         </form>
       </div>
@@ -921,7 +915,7 @@
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content border-0 shadow-lg" style="border: 1px solid rgba(146, 162, 169, 0.2) !important;">
         <div class="modal-header border-bottom py-3">
-          <h5 class="modal-title fw-bold" id="modal-payment-title" style="color: var(--freskey-color-2);">Record Payment</h5>
+          <h5 class="modal-title fw-bold" id="modal-payment-title" style="color: var(--freskey-color-2);">Record Remittance Paid</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <form id="payment-form">
@@ -932,7 +926,7 @@
               <select class="form-select" id="payment-form-party-id" required>
                 <!-- Loaded dynamically -->
               </select>
-              <label for="payment-form-party-id">Select Payee Party</label>
+              <label for="payment-form-party-id">Select Vendor Party</label>
             </div>
 
             <div class="form-floating mb-3">
@@ -957,7 +951,7 @@
           </div>
           <div class="modal-footer bg-light border-top">
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-            <button type="submit" class="btn btn-primary px-4 fw-medium">Confirm Payment</button>
+            <button type="submit" class="btn btn-primary px-4 fw-medium">Record Payment</button>
           </div>
         </form>
       </div>
