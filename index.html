@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vendor & Billing Ledger System</title>
+  
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <!-- Google Fonts (Roboto for clean Material typography) -->
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+  
+  <!-- Custom CSS for Material Design layout -->
+  <style>
+    :root {
+      --primary-blue: #1a73e8;
+      --success-green: #34a853;
+      --error-red: #ea4335;
+      --warning-yellow: #fbbc05;
+      --dark-text: #202124;
+      --light-bg: #f8f9fa;
+      --sidebar-width: 260px;
+    }
+
+    body {
+      font-family: 'Roboto', sans-serif;
+      background-color: var(--light-bg);
+      color: var(--dark-text);
+      overflow-x: hidden;
+    }
+
+    /* Scrollbars styling */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f1f1;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #c1c1c1;
+      border-radius: 4px;
+    }
+
+    /* Auth Screen styling */
+    #auth-screen {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #1a73e8 0%, #1557b0 100%);
+    }
+
+    .auth-card {
+      background: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+      width: 100%;
+      max-width: 420px;
+      padding: 2.5rem;
+    }
+
+    /* Main Application Layout */
+    #app-container {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* Sidebar Navigation */
+    #sidebar {
+      width: var(--sidebar-width);
+      background-color: #ffffff;
+      border-right: 1px solid #dadce0;
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      z-index: 100;
+      transition: all 0.3s ease;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .sidebar-brand {
+      padding: 1.5rem 1.25rem;
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--primary-blue);
+      border-bottom: 1px solid #dadce0;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .sidebar-menu {
+      list-style: none;
+      padding: 1rem 0;
+      margin: 0;
+      flex-grow: 1;
+    }
+
+    .sidebar-item a {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.85rem 1.5rem;
+      color: #5f6368;
+      text-decoration: none;
+      font-weight: 500;
+      border-radius: 0 25px 25px 0;
+      margin-right: 1rem;
+      transition: all 0.2s ease;
+    }
+
+    .sidebar-item a:hover {
+      background-color: #f1f3f4;
+      color: var(--dark-text);
+    }
+
+    .sidebar-item.active a {
+      background-color: #e8f0fe;
+      color: var(--primary-blue);
+    }
+
+    /* Top Bar Header */
+    #topbar {
+      height: 64px;
+      background-color: #ffffff;
+      border-bottom: 1px solid #dadce0;
+      position: fixed;
+      top: 0;
+      right: 0;
+      left: var(--sidebar-width);
+      z-index: 99;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 2rem;
+      transition: all 0.3s ease;
+    }
+
+    /* Main view panel wrapper */
+    #main-content {
+      margin-left: var(--sidebar-width);
+      margin-top: 64px;
+      padding: 2rem;
+      width: calc(100% - var(--sidebar-width));
+      transition: all 0.3s ease;
+    }
+
+    /* Material Cards Styling */
+    .dashboard-card {
+      background: #ffffff;
+      border: 1px solid #dadce0;
+      border-radius: 8px;
+      padding: 1.5rem;
+      box-shadow: 0 1px 2px 0 rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15);
+      transition: box-shadow 0.2s ease;
+    }
+
+    .dashboard-card:hover {
+      box-shadow: 0 1px 3px 0 rgba(60,64,67,0.3), 0 4px 8px 3px rgba(60,64,67,0.15);
+    }
+
+    .card-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+    }
+
+    /* Floating action buttons & inputs styling */
+    .btn-primary {
+      background-color: var(--primary-blue);
+      border-color: var(--primary-blue);
+    }
+    .btn-primary:hover, .btn-primary:focus {
+      background-color: #1557b0;
+      border-color: #1557b0;
+    }
+
+    /* Timeline styling (Recent Activity UI) */
+    .timeline {
+      position: relative;
+      padding-left: 2rem;
+      list-style: none;
+    }
+
+    .timeline::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 7px;
+      width: 2px;
+      background: #dadce0;
+    }
+
+    .timeline-item {
+      position: relative;
+      margin-bottom: 1.5rem;
+    }
+
+    .timeline-marker {
+      position: absolute;
+      left: -29px;
+      top: 4px;
+      background: var(--primary-blue);
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 3px solid #fff;
+      box-shadow: 0 0 0 2px var(--primary-blue);
+    }
+
+    /* Soft Responsive Styling */
+    @media (max-width: 991.98px) {
+      #sidebar {
+        transform: translateX(-100%);
+      }
+      #sidebar.active {
+        transform: translateX(0);
+      }
+      #topbar {
+        left: 0;
+      }
+      #main-content {
+        margin-left: 0;
+        width: 100%;
+      }
+    }
+
+    /* Print utility styling for Vendor Ledger */
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      #print-area, #print-area * {
+        visibility: visible;
+      }
+      #print-area {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Loading State Overlay -->
+  <div id="loading-spinner" class="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center bg-white bg-opacity-75 z-3 d-none">
+    <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+      <span class="visually-hidden">Loading...</span>
+    </div>
+  </div>
+
+  <!-- AUTH SCREEN (Email/Password Login) -->
+  <div id="auth-screen">
+    <div class="auth-card">
+      <div class="text-center mb-4">
+        <h4 class="fw-bold text-primary mb-1"><i class="bi bi-wallet2 me-2"></i>LedgerBook</h4>
+        <p class="text-muted small">Arpit & Daksh Management Suite</p>
+      </div>
+      <form id="login-form">
+        <div class="form-floating mb-3">
+          <input type="email" class="form-control" id="login-email" placeholder="name@example.com" required>
+          <label for="login-email">Email Address</label>
+        </div>
+        <div class="form-floating mb-3">
+          <input type="password" class="form-control" id="login-password" placeholder="Password" required>
+          <label for="login-password">Password</label>
+        </div>
+        <button class="btn btn-primary w-100 py-3 fw-bold shadow-sm" type="submit">
+          <i class="bi bi-box-arrow-in-right me-2"></i>Login securely
+        </button>
+      </form>
+      <div id="login-error-msg" class="alert alert-danger mt-3 py-2 d-none small"></div>
+    </div>
+  </div>
+
+  <!-- MAIN APPLICATION LAYOUT -->
+  <div id="app-container" class="d-none">
+    
+    <!-- SIDEBAR -->
+    <aside id="sidebar">
+      <div class="sidebar-brand">
+        <i class="bi bi-wallet2 text-primary"></i>
+        <span>LedgerBook</span>
+      </div>
+      <ul class="sidebar-menu">
+        <li class="sidebar-item active" data-view="dashboard">
+          <a href="#"><i class="bi bi-grid-1x2-fill"></i>Dashboard</a>
+        </li>
+        <li class="sidebar-item" data-view="parties">
+          <a href="#"><i class="bi bi-people-fill"></i>Parties</a>
+        </li>
+        <li class="sidebar-item" data-view="bills">
+          <a href="#"><i class="bi bi-receipt"></i>Bills</a>
+        </li>
+        <li class="sidebar-item" data-view="payments">
+          <a href="#"><i class="bi bi-cash-stack"></i>Payments</a>
+        </li>
+        <li class="sidebar-item" data-view="ledger">
+          <a href="#"><i class="bi bi-journal-text"></i>Ledger</a>
+        </li>
+        <li class="sidebar-item" data-view="activity">
+          <a href="#"><i class="bi bi-clock-history"></i>Activity History</a>
+        </li>
+      </ul>
+      <div class="p-3 border-top text-center text-muted small">
+        <i class="bi bi-shield-check text-success"></i> Firebase Spark Protected
+      </div>
+    </aside>
+
+    <!-- TOP BAR -->
+    <header id="topbar">
+      <div class="d-flex align-items-center">
+        <button class="btn d-lg-none me-2" id="sidebar-toggle" aria-label="Toggle Sidebar">
+          <i class="bi bi-list fs-4"></i>
+        </button>
+        <span class="fs-5 fw-bold" id="current-page-title">Dashboard</span>
+      </div>
+      <div class="d-flex align-items-center gap-3">
+        <span class="badge bg-light text-dark py-2 px-3 border" id="user-display-badge">
+          <i class="bi bi-person-circle text-primary me-2"></i><span id="nav-user-name">Loading...</span>
+        </span>
+        <button class="btn btn-outline-danger btn-sm" id="btn-logout" title="Sign Out">
+          <i class="bi bi-box-arrow-right me-1"></i>Logout
+        </button>
+      </div>
+    </header>
+
+    <!-- MAIN VIEW PANELS -->
+    <main id="main-content">
+      
+      <!-- VIEW: DASHBOARD -->
+      <section id="view-dashboard" class="view-panel">
+        <div class="row g-4 mb-5">
+          <div class="col-12 col-sm-6 col-lg-4">
+            <div class="dashboard-card d-flex align-items-center justify-content-between">
+              <div>
+                <h6 class="text-muted text-uppercase mb-1 small fw-bold">Active Parties</h6>
+                <h3 class="fw-bold mb-0" id="dash-total-parties">0</h3>
+              </div>
+              <div class="card-icon bg-primary bg-opacity-10 text-primary">
+                <i class="bi bi-people"></i>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-sm-6 col-lg-4">
+            <div class="dashboard-card d-flex align-items-center justify-content-between">
+              <div>
+                <h6 class="text-muted text-uppercase mb-1 small fw-bold">Total Invoiced (Bills)</h6>
+                <h3 class="fw-bold mb-0" id="dash-total-bills">₹0.00</h3>
+              </div>
+              <div class="card-icon bg-warning bg-opacity-10 text-warning">
+                <i class="bi bi-receipt"></i>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-sm-6 col-lg-4">
+            <div class="dashboard-card d-flex align-items-center justify-content-between">
+              <div>
+                <h6 class="text-muted text-uppercase mb-1 small fw-bold">Outstanding Receivables</h6>
+                <h3 class="fw-bold mb-0 text-danger" id="dash-total-outstanding">₹0.00</h3>
+              </div>
+              <div class="card-icon bg-danger bg-opacity-10 text-danger">
+                <i class="bi bi-graph-down-arrow"></i>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-sm-6 col-lg-4">
+            <div class="dashboard-card d-flex align-items-center justify-content-between">
+              <div>
+                <h6 class="text-muted text-uppercase mb-1 small fw-bold">Total Payments Processed</h6>
+                <h3 class="fw-bold mb-0 text-success" id="dash-total-payments">₹0.00</h3>
+              </div>
+              <div class="card-icon bg-success bg-opacity-10 text-success">
+                <i class="bi bi-cash-stack"></i>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-sm-6 col-lg-4">
+            <div class="dashboard-card d-flex align-items-center justify-content-between">
+              <div>
+                <h6 class="text-muted text-uppercase mb-1 small fw-bold">Pending Invoices</h6>
+                <h3 class="fw-bold mb-0" id="dash-pending-count">0</h3>
+              </div>
+              <div class="card-icon bg-info bg-opacity-10 text-info">
+                <i class="bi bi-clock-history"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row g-4">
+          <div class="col-12 col-xl-8">
+            <div class="card border-0 shadow-sm rounded-3 p-4 bg-white mb-4">
+              <h5 class="fw-bold mb-3">System Actions Quick Access</h5>
+              <div class="d-flex flex-wrap gap-2">
+                <button class="btn btn-primary" onclick="openPartyModal()"><i class="bi bi-plus-circle me-1"></i>New Party</button>
+                <button class="btn btn-warning text-dark" onclick="openBillModal()"><i class="bi bi-file-earmark-plus me-1"></i>New Bill</button>
+                <button class="btn btn-success" onclick="openPaymentModal()"><i class="bi bi-currency-rupee me-1"></i>Record Payment</button>
+              </div>
+            </div>
+          </div>
+          <div class="col-12 col-xl-4">
+            <div class="card border-0 shadow-sm rounded-3 p-4 bg-white">
+              <h5 class="fw-bold mb-3">Recent Activity</h5>
+              <ul class="timeline" id="dash-timeline-list">
+                <!-- Loaded Dynamically -->
+              </ul>
+              <a href="#" class="text-decoration-none small text-primary" onclick="switchView('activity')">View all system events <i class="bi bi-arrow-right"></i></a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW: PARTIES -->
+      <section id="view-parties" class="view-panel d-none">
+        <div class="card border-0 shadow-sm rounded-3 bg-white p-4">
+          <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-4">
+            <div class="input-group search-bar" style="max-width: 360px;">
+              <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+              <input type="text" class="form-control border-start-0" id="party-search-input" placeholder="Search party details...">
+            </div>
+            <button class="btn btn-primary shadow-sm" onclick="openPartyModal()">
+              <i class="bi bi-person-plus-fill me-2"></i>Create New Party
+            </button>
+          </div>
+
+          <div class="table-responsive">
+            <table class="table table-hover align-middle border-top" id="parties-table">
+              <thead class="table-light">
+                <tr>
+                  <th>Party Name</th>
+                  <th>GST Number</th>
+                  <th>Mobile Number</th>
+                  <th class="text-end">Total Bills (₹)</th>
+                  <th class="text-end">Total Paid (₹)</th>
+                  <th class="text-end">Outstanding Balance (₹)</th>
+                  <th class="text-center">Action Options</th>
+                </tr>
+              </thead>
+              <tbody id="parties-tbody">
+                <!-- Dynamically Populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW: BILLS -->
+      <section id="view-bills" class="view-panel d-none">
+        <div class="card border-0 shadow-sm rounded-3 bg-white p-4">
+          <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-4">
+            <div class="input-group search-bar" style="max-width: 360px;">
+              <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+              <input type="text" class="form-control border-start-0" id="bill-search-input" placeholder="Search bill / party...">
+            </div>
+            <button class="btn btn-primary shadow-sm" onclick="openBillModal()">
+              <i class="bi bi-file-earmark-plus-fill me-2"></i>Create New Bill
+            </button>
+          </div>
+
+          <div class="table-responsive">
+            <table class="table table-hover align-middle border-top" id="bills-table">
+              <thead class="table-light">
+                <tr>
+                  <th>Bill Number</th>
+                  <th>Bill Date</th>
+                  <th>Due Date</th>
+                  <th>Party Vendor</th>
+                  <th class="text-end">Total Amount (₹)</th>
+                  <th class="text-center">Action Options</th>
+                </tr>
+              </thead>
+              <tbody id="bills-tbody">
+                <!-- Dynamically Populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW: PAYMENTS -->
+      <section id="view-payments" class="view-panel d-none">
+        <div class="card border-0 shadow-sm rounded-3 bg-white p-4">
+          <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3 mb-4">
+            <div class="input-group search-bar" style="max-width: 360px;">
+              <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+              <input type="text" class="form-control border-start-0" id="payment-search-input" placeholder="Search party or payments...">
+            </div>
+            <button class="btn btn-primary shadow-sm" onclick="openPaymentModal()">
+              <i class="bi bi-currency-rupee me-2"></i>Record Party Payment
+            </button>
+          </div>
+
+          <div class="table-responsive">
+            <table class="table table-hover align-middle border-top" id="payments-table">
+              <thead class="table-light">
+                <tr>
+                  <th>Payment Date</th>
+                  <th>Party Name</th>
+                  <th>Payment Mode</th>
+                  <th class="text-end">Amount Cleared (₹)</th>
+                  <th class="text-center">Action Options</th>
+                </tr>
+              </thead>
+              <tbody id="payments-tbody">
+                <!-- Dynamically Populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW: LEDGER -->
+      <section id="view-ledger" class="view-panel d-none">
+        <div class="card border-0 shadow-sm rounded-3 bg-white p-4 mb-4">
+          <div class="row align-items-end g-3">
+            <div class="col-12 col-md-6">
+              <label for="ledger-party-select" class="form-label fw-bold">Select Party Vendor</label>
+              <select class="form-select" id="ledger-party-select">
+                <option value="">-- Choose Party --</option>
+              </select>
+            </div>
+            <div class="col-12 col-md-6 d-flex gap-2">
+              <button class="btn btn-primary flex-grow-1" id="btn-generate-ledger">
+                <i class="bi bi-file-text-fill me-2"></i>Generate Statement
+              </button>
+              <button class="btn btn-outline-dark" id="btn-print-ledger" disabled>
+                <i class="bi bi-printer-fill me-1"></i>Print Ledger
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div id="print-area" class="card border-0 shadow-sm rounded-3 bg-white p-4 d-none">
+          <div class="d-flex justify-content-between align-items-start border-bottom pb-4 mb-4">
+            <div>
+              <h2 class="fw-bold text-primary mb-1">VENDOR ACCOUNT LEDGER</h2>
+              <p class="text-muted mb-0 small">Generated automatically on: <span id="ledger-generation-date">--</span></p>
+            </div>
+            <div class="text-end">
+              <h5 class="fw-bold mb-1" id="ledger-company-name">--</h5>
+              <p class="text-muted mb-0 small" id="ledger-company-info">--</p>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="table table-bordered align-middle">
+              <thead class="table-light">
+                <tr>
+                  <th style="width: 15%">Transaction Date</th>
+                  <th style="width: 45%">Description & Remarks</th>
+                  <th class="text-end" style="width: 13%">Debit (Bills) (₹)</th>
+                  <th class="text-end" style="width: 13%">Credit (Payments) (₹)</th>
+                  <th class="text-end" style="width: 14%">Running Balance (₹)</th>
+                </tr>
+              </thead>
+              <tbody id="ledger-tbody">
+                <tr>
+                  <td colspan="5" class="text-center text-muted">Please select a party first.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- VIEW: ACTIVITY HISTORY -->
+      <section id="view-activity" class="view-panel d-none">
+        <div class="card border-0 shadow-sm rounded-3 bg-white p-4">
+          <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-4">
+            <h5 class="mb-0 fw-bold">Complete System Audited Activities</h5>
+            <span class="badge bg-primary px-3 py-2">Security Auditable Events (Read Only)</span>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-hover align-middle">
+              <thead class="table-light">
+                <tr>
+                  <th>Timestamp</th>
+                  <th>Operator</th>
+                  <th>Action Category</th>
+                  <th>Detailed Operation Log</th>
+                </tr>
+              </thead>
+              <tbody id="activities-tbody">
+                <!-- Dynamically Loaded -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- TOAST NOTIFICATION CONTAINER -->
+  <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1055;">
+    <div id="app-toast" class="toast align-items-center border-0 shadow-lg" role="alert" aria-live="assertive" aria-atomic="true">
+      <div class="d-flex">
+        <div class="toast-body d-flex align-items-center gap-2" id="toast-text-content">
+          <i class="bi bi-info-circle-fill" id="toast-icon"></i>
+          <span>Notification</span>
+        </div>
+        <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ADD / EDIT PARTY -->
+  <div class="modal fade" id="modal-party" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 shadow-lg">
+        <div class="modal-header border-bottom py-3">
+          <h5 class="modal-title fw-bold" id="modal-party-title">Create Vendor Party</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form id="party-form">
+          <div class="modal-body p-4">
+            <input type="hidden" id="party-form-id">
+            <div class="form-floating mb-3">
+              <input type="text" class="form-control" id="party-form-name" placeholder="Party Name" required>
+              <label for="party-form-name">Party / Vendor Name</label>
+            </div>
+            <div class="form-floating mb-3">
+              <input type="tel" class="form-control" id="party-form-mobile" placeholder="Mobile" required>
+              <label for="party-form-mobile">Contact Number (Mobile)</label>
+            </div>
+            <div class="form-floating mb-3">
+              <input type="text" class="form-control" id="party-form-gst" placeholder="GST Number">
+              <label for="party-form-gst">GSTIN Reference (Optional)</label>
+            </div>
+            <div class="form-floating mb-3">
+              <input type="text" class="form-control" id="party-form-address" placeholder="Address">
+              <label for="party-form-address">Corporate Address</label>
+            </div>
+            <div class="form-floating mb-3">
+              <textarea class="form-control" id="party-form-notes" placeholder="Notes" style="height: 100px;"></textarea>
+              <label for="party-form-notes">General Notes / Remarks</label>
+            </div>
+          </div>
+          <div class="modal-footer bg-light border-top">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <button type="submit" class="btn btn-primary px-4 fw-medium">Save Details</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: PARTY DETAIL VIEW -->
+  <div class="modal fade" id="modal-party-details" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content border-0 shadow-lg">
+        <div class="modal-header bg-primary text-white py-3">
+          <h5 class="modal-title fw-bold" id="party-detail-title">Party Profile Information</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-4">
+          <div class="row g-4 mb-4 border-bottom pb-4">
+            <div class="col-12 col-md-6">
+              <p class="text-muted mb-1 small fw-bold">MOBILE</p>
+              <h6 class="fw-bold mb-3" id="party-detail-mobile">--</h6>
+              <p class="text-muted mb-1 small fw-bold">GST NUMBER</p>
+              <h6 class="fw-bold mb-3" id="party-detail-gst">--</h6>
+              <p class="text-muted mb-1 small fw-bold">ADDRESS</p>
+              <p class="mb-0" id="party-detail-address">--</p>
+            </div>
+            <div class="col-12 col-md-6 border-start-md ps-md-4">
+              <div class="p-3 bg-light rounded-3">
+                <p class="text-muted mb-1 small fw-bold">TOTAL BILLED AMOUNT</p>
+                <h5 class="fw-bold text-dark mb-3" id="party-detail-total-bills">₹0.00</h5>
+                <p class="text-muted mb-1 small fw-bold">TOTAL AMOUNT PAID</p>
+                <h5 class="fw-bold text-success mb-3" id="party-detail-total-payments">₹0.00</h5>
+                <p class="text-muted mb-1 small fw-bold">OUTSTANDING DUE</p>
+                <h5 class="fw-bold text-danger mb-0" id="party-detail-outstanding">₹0.00</h5>
+              </div>
+            </div>
+          </div>
+          <h6 class="fw-bold mb-3"><i class="bi bi-journal-text text-primary me-2"></i>Recent Associated Bills & Payments</h6>
+          <div class="table-responsive">
+            <table class="table table-bordered table-sm small align-middle">
+              <thead class="table-light">
+                <tr>
+                  <th>Date</th>
+                  <th>Transaction Type</th>
+                  <th class="text-end">Debit (Bills)</th>
+                  <th class="text-end">Credit (Payments)</th>
+                </tr>
+              </thead>
+              <tbody id="party-detail-transactions-tbody">
+                <!-- Dynamically Populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="modal-footer bg-light border-top">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close Window</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ADD / EDIT BILL -->
+  <div class="modal fade" id="modal-bill" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+      <div class="modal-content border-0 shadow-lg">
+        <div class="modal-header border-bottom py-3">
+          <h5 class="modal-title fw-bold" id="modal-bill-title">Create Vendor Purchase Invoice</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form id="bill-form">
+          <div class="modal-body p-4">
+            <input type="hidden" id="bill-form-id">
+            
+            <div class="row g-3 mb-4">
+              <div class="col-12 col-md-3">
+                <div class="form-floating">
+                  <input type="text" class="form-control" id="bill-form-number" placeholder="Bill No" required>
+                  <label for="bill-form-number">Invoice Number (#)</label>
+                </div>
+              </div>
+              <div class="col-12 col-md-3">
+                <div class="form-floating">
+                  <select class="form-select" id="bill-form-party-id" required>
+                    <!-- Dynamically Loaded -->
+                  </select>
+                  <label for="bill-form-party-id">Select Vendor Party</label>
+                </div>
+              </div>
+              <div class="col-12 col-md-3">
+                <div class="form-floating">
+                  <input type="date" class="form-control" id="bill-form-date" required>
+                  <label for="bill-form-date">Bill Date</label>
+                </div>
+              </div>
+              <div class="col-12 col-md-3">
+                <div class="form-floating">
+                  <input type="date" class="form-control" id="bill-form-due-date" required>
+                  <label for="bill-form-due-date">Due Date</label>
+                </div>
+              </div>
+            </div>
+
+            <h6 class="fw-bold border-bottom pb-2 mb-3">Purchased Items Breakdown</h6>
+            
+            <div class="table-responsive">
+              <table class="table table-bordered align-middle" id="bill-items-table">
+                <thead class="table-light">
+                  <tr>
+                    <th>Particulars Name / Description</th>
+                    <th style="width: 120px;">Qty</th>
+                    <th style="width: 160px;">Rate (₹)</th>
+                    <th style="width: 180px;">Amount (₹)</th>
+                    <th style="width: 60px;"></th>
+                  </tr>
+                </thead>
+                <tbody id="bill-items-tbody">
+                  <!-- Dynamically Rendered Item Rows -->
+                </tbody>
+              </table>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center mb-4">
+              <button type="button" class="btn btn-outline-primary btn-sm" id="btn-add-item-row">
+                <i class="bi bi-plus-circle-fill me-1"></i>Add Item Row
+              </button>
+              <div class="text-end" style="min-width: 260px;">
+                <div class="d-flex justify-content-between border-top pt-2">
+                  <span class="fw-bold">Grand Total Amount:</span>
+                  <span class="fw-bold text-primary fs-5" id="bill-items-grand-total">₹0.00</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+          <div class="modal-footer bg-light border-top">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <button type="submit" class="btn btn-primary px-4 fw-medium">Record Invoice</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ADD / EDIT PAYMENT -->
+  <div class="modal fade" id="modal-payment" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 shadow-lg">
+        <div class="modal-header border-bottom py-3">
+          <h5 class="modal-title fw-bold" id="modal-payment-title">Record Payment</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form id="payment-form">
+          <div class="modal-body p-4">
+            <input type="hidden" id="payment-form-id">
+            
+            <div class="form-floating mb-3">
+              <select class="form-select" id="payment-form-party-id" required>
+                <!-- Loaded dynamically -->
+              </select>
+              <label for="payment-form-party-id">Select Payee Party</label>
+            </div>
+
+            <div class="form-floating mb-3">
+              <input type="date" class="form-control" id="payment-form-date" required>
+              <label for="payment-form-date">Payment Date</label>
+            </div>
+
+            <div class="form-floating mb-3">
+              <input type="number" step="0.01" class="form-control" id="payment-form-amount" placeholder="Amount" min="0.01" required>
+              <label for="payment-form-amount">Amount Handed / Paid (₹)</label>
+            </div>
+
+            <div class="form-floating mb-3">
+              <select class="form-select" id="payment-form-mode" required>
+                <option value="Cash">Cash</option>
+                <option value="Bank Transfer">Bank Transfer</option>
+                <option value="UPI">UPI</option>
+                <option value="Cheque">Cheque</option>
+              </select>
+              <label for="payment-form-mode">Mode of Remittance</label>
+            </div>
+          </div>
+          <div class="modal-footer bg-light border-top">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-primary px-4 fw-medium">Confirm Payment</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- FIREBASE SDK COMPAT CDN DEPLOYED FOR SPARK PLAN NO-BUILD EXECUTIONS -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+  <!-- Javascript Core Logic Engine -->
+  <script src="app.js"></script>
+</body>
+</html>
